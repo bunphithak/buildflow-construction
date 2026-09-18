@@ -1,0 +1,174 @@
+<app-page-header
+  [title]="title"
+  [subtitle]="isEdit ? 'แก้ไขรายการค่าใช้จ่ายของ Job' : 'บันทึกค่าใช้จ่ายหน้างาน'"
+/>
+
+@if (loading()) {
+  <app-loading-state message="กำลังโหลดข้อมูลค่าใช้จ่าย..." />
+} @else {
+  <form class="expense-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    @if (formError(); as message) {
+      <p class="form-error">{{ message }}</p>
+    }
+
+    <section class="card">
+      <h2>ข้อมูลงาน</h2>
+      <div class="grid">
+        <label class="span-2">
+          Job *
+          <select formControlName="jobId">
+            <option value="">เลือกงานก่อสร้าง</option>
+            @for (job of selectableJobs(); track job.id) {
+              <option [value]="job.id">{{ job.jobCode }} · {{ job.jobName }}</option>
+            }
+          </select>
+          @if (hasError('jobId', 'required')) {
+            <small>กรุณาเลือก Job</small>
+          }
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>ข้อมูลค่าใช้จ่าย</h2>
+      <div class="grid">
+        <label>
+          วันที่ *
+          <input type="date" formControlName="expenseDate" />
+          @if (hasError('expenseDate', 'required')) {
+            <small>กรุณาเลือกวันที่</small>
+          }
+        </label>
+        <label>
+          หมวดค่าใช้จ่าย *
+          <select formControlName="categoryId">
+            <option value="">เลือกหมวด</option>
+            @for (category of categories(); track category.id) {
+              <option [value]="category.id">{{ category.name }}</option>
+            }
+          </select>
+          @if (hasError('categoryId', 'required')) {
+            <small>กรุณาเลือกหมวดค่าใช้จ่าย</small>
+          }
+        </label>
+        <label class="span-2">
+          รายละเอียด *
+          <input type="text" formControlName="description" placeholder="เช่น เหล็ก DB12, น้ำมันดีเซล, ค่าอาหารคนงาน" />
+          @if (hasError('description', 'required')) {
+            <small>กรุณากรอกรายละเอียด</small>
+          }
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>จำนวนเงิน</h2>
+      <p class="hint">กรอกจำนวน × ราคาต่อหน่วย เพื่อคำนวณยอด หรือกรอกยอดรวมเองถ้าไม่มีจำนวน</p>
+      <div class="grid">
+        <label>
+          จำนวน
+          <input type="number" min="0" step="0.01" inputmode="decimal" formControlName="quantity" />
+        </label>
+        <label>
+          หน่วย
+          <input type="text" list="expense-units" formControlName="unit" placeholder="เส้น, ลิตร, เที่ยว" />
+          <datalist id="expense-units">
+            @for (unit of units; track unit) {
+              <option [value]="unit"></option>
+            }
+          </datalist>
+        </label>
+        <label>
+          ราคาต่อหน่วย
+          <input type="number" min="0" step="0.01" inputmode="decimal" formControlName="unitPrice" />
+        </label>
+        <label>
+          ยอดรวม *
+          <input
+            type="number"
+            min="0.01"
+            step="0.01"
+            inputmode="decimal"
+            formControlName="amount"
+            [readOnly]="amountLocked"
+            (input)="onAmountInput()"
+          />
+          @if (amountLocked) {
+            <small class="calc">คำนวณจากจำนวน × ราคาต่อหน่วย = {{ calculatedAmount() }}</small>
+          }
+          @if (hasError('amount', 'required') || hasError('amount', 'min')) {
+            <small>ยอดเงินต้องมากกว่า 0</small>
+          }
+        </label>
+        <label class="span-2 check">
+          <input type="checkbox" formControlName="autoCalculate" />
+          คำนวณยอดจากจำนวน × ราคาต่อหน่วยอัตโนมัติ
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>ร้านค้า / เอกสาร</h2>
+      <div class="grid">
+        <label>
+          ร้านค้า / ผู้ขาย
+          <input type="text" formControlName="vendor" />
+        </label>
+        <label>
+          เลขที่ใบเสร็จ / Invoice
+          <input type="text" formControlName="documentNo" />
+        </label>
+        <label>
+          วิธีชำระเงิน
+          <select formControlName="paymentMethod">
+            <option value="">ไม่ระบุ</option>
+            @for (method of paymentMethods; track method) {
+              <option [value]="method">{{ method }}</option>
+            }
+          </select>
+        </label>
+        <label class="span-2">
+          หมายเหตุ
+          <textarea rows="3" formControlName="note"></textarea>
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>ใบเสร็จ / หลักฐาน</h2>
+      <div class="receipt">
+        @if (previewUrl(); as url) {
+          <img [src]="url" alt="ตัวอย่างใบเสร็จ" />
+        } @else if (selectedFile() || current()?.receiptFileName) {
+          <div class="pdf">
+            <strong>PDF</strong>
+            <span>{{ selectedFile()?.name || current()?.receiptFileName }}</span>
+          </div>
+        } @else {
+          <div class="pdf empty">ยังไม่มีไฟล์แนบ</div>
+        }
+        <div class="receipt-actions">
+          <label class="file-btn">
+            ถ่าย/แนบใบเสร็จ
+            <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" capture="environment" (change)="onFileSelected($event)" />
+          </label>
+          @if (current()?.receiptUrl) {
+            <a class="btn btn-ghost" [href]="current()?.receiptUrl" target="_blank" rel="noopener">เปิดไฟล์</a>
+            <button type="button" class="btn btn-ghost" (click)="removeExistingReceipt()">ลบไฟล์</button>
+          }
+          @if (selectedFile()) {
+            <button type="button" class="btn btn-ghost" (click)="clearSelectedFile()">เปลี่ยนไฟล์</button>
+          }
+          <p class="hint">รองรับ JPG, PNG, WEBP, PDF ขนาดไม่เกิน 10 MB</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="actions">
+      <a routerLink="/expenses" class="btn btn-ghost">ยกเลิก</a>
+      <button type="submit" class="btn btn-primary" [disabled]="saving()">
+        {{ saving() ? 'กำลังบันทึก...' : 'บันทึก' }}
+      </button>
+    </div>
+  </form>
+}

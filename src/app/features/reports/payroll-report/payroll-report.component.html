@@ -1,0 +1,69 @@
+<app-page-header title="รายงาน Payroll" subtitle="รายได้ OT โบนัส หัก และสุทธิ">
+  <a routerLink="/reports" class="btn btn-ghost">กลับ</a>
+</app-page-header>
+<section class="card filters">
+  <label>
+    เดือน
+    <select [ngModel]="month()" (ngModelChange)="month.set(+$event)">
+      @for (item of months; track item) {
+        <option [ngValue]="item">{{ item }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    ปี
+    <select [ngModel]="year()" (ngModelChange)="year.set(+$event)">
+      @for (item of years; track item) {
+        <option [ngValue]="item">{{ item }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    พนักงาน
+    <select [ngModel]="employeeId()" (ngModelChange)="employeeId.set($event)">
+      <option value="">ทั้งหมด</option>
+      @for (item of employees.employees(); track item.id) {
+        <option [value]="item.id">{{ item.employeeCode }} {{ item.firstName }} {{ item.lastName }}</option>
+      }
+    </select>
+  </label>
+</section>
+<div class="actions">
+  <button type="button" class="btn btn-primary" (click)="load()">แสดงรายงาน</button>
+  <button type="button" class="btn btn-ghost" (click)="exportExcel()">Export Excel</button>
+  <button type="button" class="btn btn-ghost" (click)="exportPdf()">Export PDF</button>
+</div>
+@if (loading()) {
+  <app-loading-state />
+} @else if (rows().length === 0) {
+  <app-empty-state title="ไม่พบ Payroll" message="ยังไม่มีงวดเงินเดือนในช่วงนี้" />
+} @else {
+  <section class="card table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>พนักงาน</th>
+          <th>รายได้</th>
+          <th>OT</th>
+          <th>โบนัส</th>
+          <th>หัก</th>
+          <th>สุทธิ</th>
+          <th>สถานะ</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track $index) {
+          <tr>
+            <td>{{ row.employeeName }}</td>
+            <td>{{ money(row.totalIncome) }}</td>
+            <td>{{ money(row.overtimePay) }}</td>
+            <td>{{ money(row.bonus) }}</td>
+            <td>{{ money(row.totalDeduction) }}</td>
+            <td>{{ money(row.netPay) }}</td>
+            <td>{{ row.status }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+}

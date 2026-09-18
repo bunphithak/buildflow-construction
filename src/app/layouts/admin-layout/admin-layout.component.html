@@ -1,0 +1,47 @@
+<div class="layout" [ngClass]="{ 'sidebar-open': sidebarOpen() }">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="logo">BF</span>
+      <div>
+        <strong>{{ companyName }}</strong>
+        <small>ระบบบริหารพนักงานและงานก่อสร้าง</small>
+      </div>
+    </div>
+
+    <nav>
+      @for (item of navItems(); track item.path) {
+        <a
+          [routerLink]="item.path"
+          routerLinkActive="active"
+          (click)="closeSidebar()"
+        >
+          <span class="icon">{{ item.icon }}</span>
+          {{ item.label }}
+        </a>
+      }
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button type="button" class="menu-btn" (click)="toggleSidebar()" aria-label="เปิดเมนู">
+        ☰
+      </button>
+      <div class="user-box">
+        <div class="user-meta">
+          <strong>{{ displayName() }}</strong>
+          <span>{{ roleLabel() }}</span>
+        </div>
+        <button type="button" class="logout-btn" (click)="logout()">ออกจากระบบ</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <router-outlet />
+    </main>
+  </div>
+
+  <button type="button" class="backdrop" (click)="closeSidebar()" aria-label="ปิดเมนู"></button>
+  <app-confirm-dialog />
+  <app-toast-host />
+</div>

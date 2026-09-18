@@ -1,0 +1,29 @@
+.toast-host {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  display: grid;
+  gap: 0.6rem;
+  z-index: 50;
+  width: min(100% - 2rem, 360px);
+}
+
+.toast {
+  padding: 0.85rem 1rem;
+  border-radius: 0.85rem;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
+}
+
+.success {
+  background: #0f7a4a;
+}
+
+.error {
+  background: #b42318;
+}
+
+.warning {
+  background: #b45309;
+}

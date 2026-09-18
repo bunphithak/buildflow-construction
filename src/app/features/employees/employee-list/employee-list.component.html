@@ -1,0 +1,110 @@
+<app-page-header title="พนักงาน" subtitle="จัดการข้อมูลพนักงาน ค่าแรง และสถานะการทำงาน">
+  <a routerLink="/employees/new" class="btn btn-primary">+ เพิ่มพนักงาน</a>
+</app-page-header>
+
+<section class="stats">
+  <article class="card">
+    <span>พนักงานทั้งหมด</span>
+    <strong>{{ totalCount() }}</strong>
+  </article>
+  <article class="card">
+    <span>พนักงานประจำ</span>
+    <strong>{{ monthlyCount() }}</strong>
+  </article>
+  <article class="card">
+    <span>พนักงานรายวัน</span>
+    <strong>{{ dailyCount() }}</strong>
+  </article>
+  <article class="card">
+    <span>พนักงานที่ใช้งานอยู่</span>
+    <strong>{{ activeCount() }}</strong>
+  </article>
+</section>
+
+<section class="card filters">
+  <label>
+    ค้นหา
+    <input
+      type="search"
+      placeholder="รหัส, ชื่อ, นามสกุล, ชื่อเล่น"
+      [ngModel]="search()"
+      (ngModelChange)="search.set($event)"
+    />
+  </label>
+  <label>
+    ประเภทการจ้าง
+    <select [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event)">
+      <option value="">ทั้งหมด</option>
+      <option value="DAILY">รายวัน</option>
+      <option value="MONTHLY">รายเดือน</option>
+    </select>
+  </label>
+  <label>
+    ตำแหน่ง
+    <select [ngModel]="positionFilter()" (ngModelChange)="positionFilter.set($event)">
+      <option value="">ทั้งหมด</option>
+      @for (position of positions(); track position) {
+        <option [value]="position">{{ position }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    สถานะ
+    <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+      <option value="">ทั้งหมด</option>
+      <option value="ACTIVE">ใช้งาน</option>
+      <option value="INACTIVE">ปิดใช้งาน</option>
+    </select>
+  </label>
+</section>
+
+@if (loading()) {
+  <app-loading-state />
+} @else {
+  @if (error(); as message) {
+    <app-empty-state title="โหลดข้อมูลไม่สำเร็จ" [message]="message" />
+  } @else if (filteredEmployees().length === 0) {
+    <app-empty-state title="ไม่พบพนักงาน" message="ลองปรับคำค้นหา หรือเพิ่มพนักงานใหม่" />
+  } @else {
+    <section class="card table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>รหัส</th>
+              <th>ชื่อ-นามสกุล</th>
+              <th>ชื่อเล่น</th>
+              <th>ตำแหน่ง</th>
+              <th>ประเภท</th>
+              <th>ค่าจ้าง</th>
+              <th>เบอร์โทร</th>
+              <th>สถานะ</th>
+              <th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (employee of filteredEmployees(); track employee.id) {
+              <tr>
+                <td>{{ employee.employeeCode }}</td>
+                <td>{{ fullName(employee) }}</td>
+                <td>{{ employee.nickname || '-' }}</td>
+                <td>{{ employee.position }}</td>
+                <td>{{ typeLabels[employee.employmentType] }}</td>
+                <td>{{ wage(employee) }}</td>
+                <td>{{ employee.phone || '-' }}</td>
+                <td><app-status-badge [status]="employee.status" /></td>
+                <td class="actions">
+                  <a [routerLink]="['/employees', employee.id]" class="link">ดู</a>
+                  <a [routerLink]="['/employees', employee.id, 'edit']" class="link">แก้ไข</a>
+                  <button type="button" class="link" (click)="toggleStatus(employee)">
+                    {{ statusActionLabel(employee.status) }}
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+}

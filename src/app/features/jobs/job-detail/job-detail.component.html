@@ -1,0 +1,365 @@
+@if (job(); as current) {
+  <app-page-header [title]="current.jobCode" [subtitle]="current.jobName + ' · ' + current.customerName">
+    <div class="header-actions">
+      <app-status-badge kind="job" [status]="current.status" />
+      @if (canManage()) {
+        <a [routerLink]="['/jobs', current.id, 'edit']" class="btn btn-primary">แก้ไข Job</a>
+        <select class="status-select" [ngModel]="current.status" (ngModelChange)="onStatusChange($event)">
+          @for (status of statuses; track status) {
+            <option [value]="status">{{ statusLabels[status] }}</option>
+          }
+        </select>
+      }
+    </div>
+  </app-page-header>
+}
+
+@if (loading()) {
+  <app-loading-state />
+} @else if (!job()) {
+  <app-empty-state title="ไม่พบงานก่อสร้าง" message="ข้อมูลนี้อาจถูกลบหรือรหัสไม่ถูกต้อง" />
+} @else {
+  @if (job(); as job) {
+  @if (cost(); as cost) {
+    <section class="stats">
+      <article class="card"><span>มูลค่างาน</span><strong>{{ money(cost.contractValue) }}</strong></article>
+      <article class="card"><span>งบประมาณ</span><strong>{{ money(cost.estimatedBudget) }}</strong></article>
+      <article class="card"><span>ค่าแรง</span><strong>{{ money(cost.laborCost) }}</strong></article>
+      <article class="card"><span>ค่าใช้จ่าย</span><strong>{{ money(cost.expenseCost) }}</strong></article>
+      <article class="card"><span>ต้นทุนรวม</span><strong>{{ money(cost.totalCost) }}</strong></article>
+      <article class="card"><span>กำไรประมาณการ</span><strong>{{ money(cost.estimatedProfit) }}</strong></article>
+      <article class="card"><span>Margin</span><strong>{{ cost.profitMargin | number:'1.2-2' }}%</strong></article>
+      <article class="card"><span>ใช้ไปจากงบ</span><strong>{{ cost.budgetUsedPercent | number:'1.2-2' }}%</strong></article>
+    </section>
+
+    <section class="card budget" [class]="budgetLevel()">
+      <div>
+        <span>งบประมาณ</span>
+        <strong>{{ money(cost.estimatedBudget) }}</strong>
+      </div>
+      <div>
+        <span>ใช้แล้ว</span>
+        <strong>{{ money(cost.totalCost) }}</strong>
+      </div>
+      <div>
+        <span>งบคงเหลือ</span>
+        <strong>{{ money(cost.remainingBudget) }}</strong>
+      </div>
+      <div>
+        <span>การใช้งบ</span>
+        <strong>{{ budgetIcon() }} {{ cost.budgetUsedPercent | number:'1.2-2' }}% · {{ budgetLabel() }}</strong>
+      </div>
+      <div class="budget-bar span-all">
+        <div class="budget-bar-fill" [style.width.%]="budgetBarWidth(cost.budgetUsedPercent)"></div>
+      </div>
+    </section>
+  }
+
+  <nav class="tabs">
+    @for (tab of tabs; track tab.id) {
+      <button type="button" [class.active]="activeTab() === tab.id" (click)="setTab(tab.id)">
+        {{ tab.label }}
+      </button>
+    }
+  </nav>
+
+  @if (activeTab() === 'overview') {
+    <section class="card details">
+      <div><span>รหัสงาน</span><strong>{{ job.jobCode }}</strong></div>
+      <div><span>ชื่องาน</span><strong>{{ job.jobName }}</strong></div>
+      <div><span>ลูกค้า</span><strong>{{ job.customerName }}</strong></div>
+      <div><span>เบอร์โทร</span><strong>{{ job.customerPhone || '-' }}</strong></div>
+      <div><span>สถานที่</span><strong>{{ job.location || '-' }}</strong></div>
+      <div><span>วันที่เริ่ม</span><strong>{{ job.startDate | thaiDate:'short' }}</strong></div>
+      <div><span>วันที่คาดว่าจะเสร็จ</span><strong>{{ job.expectedEndDate ? (job.expectedEndDate | thaiDate:'short') : '-' }}</strong></div>
+      <div><span>Supervisor</span><strong>{{ supervisorName() }}</strong></div>
+      <div><span>มูลค่างาน</span><strong>{{ money(job.contractValue) }}</strong></div>
+      <div><span>งบประมาณ</span><strong>{{ money(job.estimatedBudget) }}</strong></div>
+      <div class="span-2"><span>รายละเอียด</span><strong>{{ job.description || '-' }}</strong></div>
+      <div class="span-2"><span>หมายเหตุ</span><strong>{{ job.note || '-' }}</strong></div>
+    </section>
+
+    @if (schedulePercent() !== null) {
+      <section class="card">
+        <h3>ความคืบหน้าตามระยะเวลา</h3>
+        <p>คิดจากวันที่เริ่มงานถึงวันที่คาดว่าจะเสร็จ ไม่ใช่ความคืบหน้างานจริง</p>
+        <div class="progress">
+          <div class="bar" [style.width.%]="schedulePercent()"></div>
+        </div>
+        <strong>{{ schedulePercent() }}%</strong>
+      </section>
+    }
+  } @else if (activeTab() === 'employees') {
+    <section class="mini-stats">
+      <article class="card"><span>พนักงานใน Job</span><strong>{{ activeMembers().length }} คน</strong></article>
+      <article class="card"><span>รายวัน</span><strong>{{ dailyCount() }} คน</strong></article>
+      <article class="card"><span>รายเดือน</span><strong>{{ monthlyCount() }} คน</strong></article>
+    </section>
+
+    @if (canAssign()) {
+      <div class="tab-actions">
+        <button type="button" class="btn btn-primary" (click)="assignOpen.set(true)">+ เพิ่มพนักงานเข้า Job</button>
+      </div>
+    } @else if (canManage()) {
+      <p class="locked">งานนี้ปิดหรือยกเลิกแล้ว ไม่สามารถเพิ่มพนักงานใหม่ได้</p>
+    }
+
+    @if (activeMembers().length === 0) {
+      <app-empty-state title="ยังไม่มีพนักงานใน Job นี้" message="กดปุ่มเพิ่มพนักงานเข้า Job ด้านบนเพื่อมอบหมายคนเข้างาน" />
+    } @else {
+      <section class="card table-card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>รหัส</th>
+                <th>ชื่อ</th>
+                <th>ตำแหน่ง</th>
+                <th>ประเภท</th>
+                <th>ค่าจ้าง</th>
+                <th>วันที่เข้า Job</th>
+                <th>สถานะ</th>
+                <th>จัดการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of activeMembers(); track row.assignment.id) {
+                <tr>
+                  <td>{{ row.employee?.employeeCode || '-' }}</td>
+                  <td>{{ fullName(row.employee) }}</td>
+                  <td>{{ row.employee?.position || '-' }}</td>
+                  <td>{{ row.employee ? typeLabels[row.employee.employmentType] : '-' }}</td>
+                  <td>{{ row.employee ? wage(row.employee) : '-' }}</td>
+                  <td>{{ row.assignment.assignedDate | thaiDate:'short' }}</td>
+                  <td><app-status-badge kind="assignment" [status]="row.assignment.status" /></td>
+                  <td>
+                    @if (canManage()) {
+                      <button type="button" class="link" (click)="removeMember(row)">นำออก</button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  } @else if (activeTab() === 'attendance') {
+    <div class="tab-actions">
+      @if (canManage()) {
+        <a class="btn btn-primary" [routerLink]="['/attendance/daily']" [queryParams]="{ jobId: job.id }">ลงเวลารายวัน</a>
+      }
+    </div>
+    @if (jobAttendances().length === 0) {
+      <app-empty-state title="ยังไม่มีรายการลงเวลา" message="เริ่มลงเวลารายวันของ Job นี้" />
+    } @else {
+      <section class="card table-card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>วันที่</th>
+                <th>พนักงาน</th>
+                <th>สถานะ</th>
+                <th>เข้า</th>
+                <th>ออก</th>
+                <th>OT</th>
+                <th>ค่าแรง</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of jobAttendances(); track item.id) {
+                <tr>
+                  <td>{{ item.workDate.toDate() | thaiDate:'short' }}</td>
+                  <td>{{ employeeName(item.employeeId) }}</td>
+                  <td><app-status-badge kind="attendance" [status]="item.status" /></td>
+                  <td>{{ times(item).clockIn }}</td>
+                  <td>{{ times(item).clockOut }}</td>
+                  <td>{{ item.overtimeHours }}</td>
+                  <td>{{ money(item.totalLaborCost) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  } @else if (activeTab() === 'labor') {
+    <section class="mini-stats">
+      <article class="card"><span>ค่าแรงรวมของ Job</span><strong>{{ money(laborTotal()) }}</strong></article>
+      <article class="card"><span>จำนวนรายการ</span><strong>{{ jobAttendances().length }}</strong></article>
+      <article class="card"><span>OT รวม</span><strong>{{ overtimeTotal() }}</strong></article>
+      <article class="card"><span>พนักงานที่เคยทำ Job</span><strong>{{ filteredLaborRows().length }}</strong></article>
+    </section>
+    <section class="card filters">
+      <label>
+        ช่วงเวลา
+        <select [ngModel]="laborFilter()" (ngModelChange)="setLaborFilter($event)">
+          <option value="all">ทั้งหมด</option>
+          <option value="month">เดือนนี้</option>
+          <option value="range">เลือกช่วงวันที่</option>
+        </select>
+      </label>
+      @if (laborFilter() === 'range') {
+        <label>วันที่เริ่ม <input type="date" [ngModel]="laborStart()" (ngModelChange)="laborStart.set($event)" /></label>
+        <label>วันที่สิ้นสุด <input type="date" [ngModel]="laborEnd()" (ngModelChange)="laborEnd.set($event)" /></label>
+      }
+    </section>
+    @if (filteredLaborRows().length === 0) {
+      <app-empty-state title="ยังไม่มีค่าแรง" message="เมื่อมีการลงเวลา ระบบจะรวมต้นทุนค่าแรงเข้า Job อัตโนมัติ" />
+    } @else {
+      <section class="card table-card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>พนักงาน</th>
+                <th>ประเภท</th>
+                <th>จำนวนวัน/รายการ</th>
+                <th>ชั่วโมง</th>
+                <th>OT</th>
+                <th>ค่าแรงปกติ</th>
+                <th>ค่า OT</th>
+                <th>รวม</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of filteredLaborRows(); track row.employeeId) {
+                <tr>
+                  <td>{{ row.employeeName }}</td>
+                  <td>{{ typeLabels[row.employmentType] }}</td>
+                  <td>{{ row.presentDays }} วัน / {{ row.recordCount }} รายการ</td>
+                  <td>{{ row.normalHours }}</td>
+                  <td>{{ row.overtimeHours }}</td>
+                  <td>{{ money(row.regularLaborCost) }}</td>
+                  <td>{{ money(row.overtimeCost) }}</td>
+                  <td>{{ money(row.totalLaborCost) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  } @else if (activeTab() === 'expenses') {
+    <section class="mini-stats">
+      <article class="card"><span>ค่าใช้จ่ายทั้งหมด</span><strong>{{ money(expenseTabCards().total) }}</strong></article>
+      <article class="card"><span>ค่าวัสดุ</span><strong>{{ money(expenseTabCards().material) }}</strong></article>
+      <article class="card"><span>ค่าน้ำมัน</span><strong>{{ money(expenseTabCards().fuel) }}</strong></article>
+      <article class="card"><span>เครื่องจักร/เช่า</span><strong>{{ money(expenseTabCards().machine) }}</strong></article>
+      <article class="card"><span>ขนส่ง/รถ</span><strong>{{ money(expenseTabCards().transport) }}</strong></article>
+      <article class="card"><span>อื่นๆ</span><strong>{{ money(expenseTabCards().other) }}</strong></article>
+    </section>
+    <section class="card filters">
+      <label>
+        ช่วงเวลา
+        <select [ngModel]="expenseFilter()" (ngModelChange)="setExpenseFilter($event)">
+          <option value="today">วันนี้</option>
+          <option value="month">เดือนนี้</option>
+          <option value="all">ทั้งหมด</option>
+          <option value="range">เลือกช่วงวันที่</option>
+        </select>
+      </label>
+      @if (expenseFilter() === 'range') {
+        <label>วันที่เริ่ม <input type="date" [ngModel]="expenseStart()" (ngModelChange)="expenseStart.set($event)" /></label>
+        <label>วันที่สิ้นสุด <input type="date" [ngModel]="expenseEnd()" (ngModelChange)="expenseEnd.set($event)" /></label>
+      }
+    </section>
+    @if (canAddExpense()) {
+      <div class="tab-actions">
+        <a class="btn btn-primary" [routerLink]="['/expenses/new']" [queryParams]="{ jobId: job.id }">+ ค่าใช้จ่าย</a>
+      </div>
+    } @else if (authService.hasRole(['ADMIN', 'MANAGER'])) {
+      <p class="locked">งานนี้ปิดหรือยกเลิกแล้ว สามารถดูประวัติค่าใช้จ่ายได้ แต่ห้ามเพิ่มรายการใหม่</p>
+    }
+    @if (filteredExpenses().length === 0) {
+      <app-empty-state title="ยังไม่มีค่าใช้จ่าย" message="บันทึกค่าวัสดุ น้ำมัน เครื่องจักร และค่าใช้จ่ายหน้างานได้จากปุ่มด้านบน" />
+    } @else {
+      <section class="card">
+        <h3>แยกตามหมวด</h3>
+        <ul class="breakdown">
+          @for (item of expenseBreakdown(); track item.code) {
+            <li>
+              <div class="row">
+                <span>{{ item.name }}</span>
+                <strong>{{ money(item.amount) }}</strong>
+              </div>
+              <div class="progress">
+                <div class="bar" [style.width.%]="(item.amount / maxBreakdown()) * 100"></div>
+              </div>
+            </li>
+          }
+        </ul>
+        <p class="total">รวม {{ money(expenseTabCards().total) }}</p>
+      </section>
+      <section class="card table-card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>วันที่</th>
+                <th>หมวด</th>
+                <th>รายละเอียด</th>
+                <th>ยอดเงิน</th>
+                <th>ร้านค้า</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of filteredExpenses(); track item.id) {
+                <tr>
+                  <td>{{ item.expenseDate.toDate() | thaiDate:'short' }}</td>
+                  <td>{{ item.categoryNameSnapshot }}</td>
+                  <td>{{ item.description }}</td>
+                  <td>{{ money(item.amount) }}</td>
+                  <td>{{ item.vendor || '-' }}</td>
+                  <td><a class="link-view" [routerLink]="['/expenses', item.id]">ดู</a></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  } @else if (activeTab() === 'summary') {
+    @if (cost(); as summary) {
+      <section class="mini-stats">
+        <article class="card"><span>มูลค่างาน</span><strong>{{ money(summary.contractValue) }}</strong></article>
+        <article class="card"><span>งบประมาณ</span><strong>{{ money(summary.estimatedBudget) }}</strong></article>
+        <article class="card"><span>ค่าแรงพนักงาน</span><strong>{{ money(summary.laborCost) }}</strong></article>
+        <article class="card"><span>ค่าใช้จ่าย</span><strong>{{ money(summary.expenseCost) }}</strong></article>
+        <article class="card"><span>ต้นทุนรวม</span><strong>{{ money(summary.totalCost) }}</strong></article>
+        <article class="card"><span>กำไรประมาณการ</span><strong>{{ money(summary.estimatedProfit) }}</strong></article>
+        <article class="card"><span>งบคงเหลือ</span><strong>{{ money(summary.remainingBudget) }}</strong></article>
+        <article class="card"><span>{{ budgetIcon() }} {{ budgetLabel() }}</span><strong>{{ summary.budgetUsedPercent | number:'1.2-2' }}%</strong></article>
+      </section>
+      <section class="card">
+        <h3>ต้นทุน Job</h3>
+        <p class="hint">ค่าแรงพนักงานมาจากการลงเวลา ไม่นับซ้ำกับหมวดค่าแรงผู้รับเหมาช่วง</p>
+        <ul class="breakdown">
+          @for (item of summary.breakdown; track item.code) {
+            <li>
+              <div class="row">
+                <span>{{ item.name }}</span>
+                <strong>{{ money(item.amount) }}</strong>
+              </div>
+              <div class="progress">
+                <div class="bar" [style.width.%]="summary.totalCost > 0 ? (item.amount / summary.totalCost) * 100 : 0"></div>
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  }
+  }
+}
+
+@if (assignOpen()) {
+  <app-assign-employee-dialog
+    [employees]="employeeService.employees()"
+    [assignedEmployeeIds]="assignedIds()"
+    (cancelled)="assignOpen.set(false)"
+    (confirmed)="assignEmployees($event)"
+  />
+}

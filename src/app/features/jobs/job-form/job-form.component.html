@@ -1,0 +1,146 @@
+<app-page-header
+  [title]="isEdit ? 'แก้ไข Job' : 'สร้าง Job ใหม่'"
+  subtitle="ข้อมูลงานก่อสร้าง ลูกค้า มูลค่างาน และผู้ควบคุมงาน"
+/>
+
+@if (loading()) {
+  <app-loading-state message="กำลังโหลดข้อมูลงาน..." />
+} @else {
+  <form class="job-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <section class="card">
+      <h2>ข้อมูลงาน</h2>
+      <div class="grid">
+        <label>
+          รหัส Job *
+          <input type="text" formControlName="jobCode" placeholder="JOB-2569-001" />
+          @if (hasError('jobCode', 'required')) {
+            <small>กรุณากรอกรหัส Job</small>
+          }
+        </label>
+        <label>
+          ชื่องาน *
+          <input type="text" formControlName="jobName" />
+          @if (hasError('jobName', 'required')) {
+            <small>กรุณากรอกชื่องาน</small>
+          }
+        </label>
+        <label class="span-2">
+          รายละเอียด
+          <textarea rows="3" formControlName="description"></textarea>
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>ข้อมูลลูกค้า</h2>
+      <div class="grid">
+        <label>
+          ชื่อลูกค้า *
+          <input type="text" formControlName="customerName" />
+          @if (hasError('customerName', 'required')) {
+            <small>กรุณากรอกชื่อลูกค้า</small>
+          }
+        </label>
+        <label>
+          เบอร์โทร
+          <input type="tel" formControlName="customerPhone" />
+        </label>
+        <label class="span-2">
+          สถานที่ก่อสร้าง
+          <input type="text" formControlName="location" />
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>ข้อมูลราคา</h2>
+      <div class="grid">
+        <label>
+          มูลค่างาน *
+          <input type="number" min="0" step="0.01" formControlName="contractValue" />
+          <p class="hint">{{ contractHint() }}</p>
+          @if (hasError('contractValue', 'required')) {
+            <small>กรุณาระบุมูลค่างาน</small>
+          }
+          @if (hasError('contractValue', 'min')) {
+            <small>มูลค่างานต้องไม่ติดลบ</small>
+          }
+        </label>
+        <label>
+          งบประมาณประมาณการ
+          <input type="number" min="0" step="0.01" formControlName="estimatedBudget" />
+          <p class="hint">{{ budgetHint() }}</p>
+          @if (hasError('estimatedBudget', 'min')) {
+            <small>งบประมาณต้องไม่ติดลบ</small>
+          }
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>ระยะเวลา</h2>
+      <div class="grid">
+        <label>
+          วันที่เริ่มงาน *
+          <input type="date" formControlName="startDate" />
+          @if (hasError('startDate', 'required')) {
+            <small>กรุณาระบุวันที่เริ่มงาน</small>
+          }
+        </label>
+        <label>
+          วันที่คาดว่าจะเสร็จ
+          <input type="date" formControlName="expectedEndDate" />
+          @if (form.touched && form.hasError('endBeforeStart')) {
+            <small>วันที่คาดว่าจะเสร็จต้องไม่ก่อนวันที่เริ่มงาน</small>
+          }
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>ผู้ควบคุมงาน</h2>
+      <div class="grid">
+        <label>
+          Supervisor
+          <select formControlName="supervisorId">
+            <option value="">ยังไม่ระบุ</option>
+            @for (employee of activeEmployees(); track employee.id) {
+              <option [value]="employee.id">
+                {{ employee.employeeCode }} - {{ employeeName(employee) }}
+              </option>
+            }
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>อื่นๆ</h2>
+      <div class="grid">
+        <label>
+          สถานะ
+          <select formControlName="status">
+            @for (status of statuses; track status) {
+              <option [value]="status">{{ statusLabels[status] }}</option>
+            }
+          </select>
+        </label>
+        <label class="span-2">
+          หมายเหตุ
+          <textarea rows="3" formControlName="note"></textarea>
+        </label>
+      </div>
+    </section>
+
+    @if (formError(); as message) {
+      <p class="form-error">{{ message }}</p>
+    }
+
+    <div class="actions">
+      <a routerLink="/jobs" class="btn btn-ghost">ยกเลิก</a>
+      <button type="submit" class="btn btn-primary" [disabled]="saving()">
+        {{ saving() ? 'กำลังบันทึก...' : (isEdit ? 'บันทึกการแก้ไข' : 'บันทึก Job') }}
+      </button>
+    </div>
+  </form>
+}

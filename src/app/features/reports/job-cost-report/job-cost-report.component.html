@@ -1,0 +1,59 @@
+<app-page-header title="รายงานต้นทุนงาน" subtitle="Job Cost Report">
+  <a routerLink="/reports" class="btn btn-ghost">กลับ</a>
+</app-page-header>
+<section class="card filters">
+  <label>วันที่เริ่ม <input type="date" [ngModel]="start()" (ngModelChange)="start.set($event)" /></label>
+  <label>วันที่สิ้นสุด <input type="date" [ngModel]="end()" (ngModelChange)="end.set($event)" /></label>
+  <label>
+    เรียงตาม
+    <select [ngModel]="sort()" (ngModelChange)="setSort($event)">
+      <option value="profit">กำไร</option>
+      <option value="cost">ต้นทุน</option>
+      <option value="margin">Margin</option>
+      <option value="budget">Budget Used</option>
+    </select>
+  </label>
+</section>
+<div class="actions">
+  <button type="button" class="btn btn-primary" (click)="load()">แสดงรายงาน</button>
+  <button type="button" class="btn btn-ghost" (click)="exportExcel()">Export Excel</button>
+  <button type="button" class="btn btn-ghost" (click)="exportPdf()">Export PDF</button>
+</div>
+@if (loading()) {
+  <app-loading-state />
+} @else if (sorted().length === 0) {
+  <app-empty-state title="ไม่พบข้อมูลต้นทุน" message="ยังไม่มี Job ในระบบ" />
+} @else {
+  <section class="card table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Job</th>
+          <th>Contract Value</th>
+          <th>Labor</th>
+          <th>Expense</th>
+          <th>Total Cost</th>
+          <th>กำไร</th>
+          <th>Margin</th>
+          <th>Budget Used</th>
+          <th>Remaining</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of sorted(); track row.jobId) {
+          <tr>
+            <td>{{ row.jobName }}</td>
+            <td>{{ money(row.contractValue) }}</td>
+            <td>{{ money(row.laborCost) }}</td>
+            <td>{{ money(row.expenseCost) }}</td>
+            <td>{{ money(row.totalCost) }}</td>
+            <td>{{ money(row.estimatedProfit) }}</td>
+            <td>{{ row.profitMargin | number:'1.2-2' }}%</td>
+            <td>{{ row.budgetUsedPercent | number:'1.2-2' }}%</td>
+            <td>{{ money(row.remainingBudget) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+}

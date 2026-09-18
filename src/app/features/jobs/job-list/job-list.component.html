@@ -1,0 +1,102 @@
+<app-page-header title="งานก่อสร้าง" subtitle="จัดการ Job งานก่อสร้าง พนักงาน และต้นทุนตามงาน">
+  @if (canManage()) {
+    <a routerLink="/jobs/new" class="btn btn-primary">+ สร้าง Job ใหม่</a>
+  }
+</app-page-header>
+
+<section class="stats">
+  <article class="card"><span>Job ทั้งหมด</span><strong>{{ totalCount() }}</strong></article>
+  <article class="card"><span>กำลังดำเนินการ</span><strong>{{ inProgressCount() }}</strong></article>
+  <article class="card"><span>งานเสร็จ</span><strong>{{ completedCount() }}</strong></article>
+  <article class="card"><span>ปิดงานแล้ว</span><strong>{{ closedCount() }}</strong></article>
+</section>
+
+<section class="card filters">
+  <label>
+    ค้นหา
+    <input
+      type="search"
+      placeholder="รหัสงาน, ชื่องาน, ลูกค้า, สถานที่"
+      [ngModel]="search()"
+      (ngModelChange)="search.set($event)"
+    />
+  </label>
+  <label>
+    สถานะ
+    <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+      <option value="">ทั้งหมด</option>
+      @for (status of statuses; track status) {
+        <option [value]="status">{{ statusLabels[status] }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    วันที่เริ่มงาน
+    <input type="date" [ngModel]="startDateFilter()" (ngModelChange)="startDateFilter.set($event)" />
+  </label>
+</section>
+
+@if (loading()) {
+  <app-loading-state />
+} @else {
+  @if (error(); as message) {
+    <app-empty-state title="โหลดข้อมูลไม่สำเร็จ" [message]="message" />
+  } @else if (filteredJobs().length === 0) {
+    <app-empty-state title="ยังไม่มี Job งานก่อสร้าง" message="เริ่มต้นด้วยการสร้างงานก่อสร้างชิ้นแรก">
+    </app-empty-state>
+    @if (canManage()) {
+      <div class="empty-action">
+        <a routerLink="/jobs/new" class="btn btn-primary">สร้าง Job แรก</a>
+      </div>
+    }
+  } @else {
+    <section class="card table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>รหัสงาน</th>
+              <th>ชื่องาน</th>
+              <th>ลูกค้า</th>
+              <th>วันที่เริ่ม</th>
+              <th>มูลค่างาน</th>
+              <th>งบประมาณ</th>
+              <th>สถานะ</th>
+              <th>พนักงาน</th>
+              <th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of filteredJobs(); track row.job.id) {
+              <tr>
+                <td>{{ row.job.jobCode }}</td>
+                <td>{{ row.job.jobName }}</td>
+                <td>{{ row.job.customerName }}</td>
+                <td>{{ row.job.startDate | thaiDate:'short' }}</td>
+                <td>{{ money(row.job.contractValue) }}</td>
+                <td>{{ money(row.job.estimatedBudget) }}</td>
+                <td><app-status-badge kind="job" [status]="row.job.status" /></td>
+                <td>{{ row.employeeCount }}</td>
+                <td class="actions">
+                  <a [routerLink]="['/jobs', row.job.id]" class="link">ดูรายละเอียด</a>
+                  @if (canManage()) {
+                    <a [routerLink]="['/jobs', row.job.id, 'edit']" class="link">แก้ไข</a>
+                    <select
+                      class="status-select"
+                      [ngModel]="row.job.status"
+                      (ngModelChange)="onStatusChange(row.job, $event)"
+                    >
+                      @for (status of statuses; track status) {
+                        <option [value]="status">{{ statusLabels[status] }}</option>
+                      }
+                    </select>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+}

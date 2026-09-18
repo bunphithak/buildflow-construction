@@ -1,0 +1,16 @@
+@if (dialog.options(); as options) {
+  <div class="overlay" (click)="dialog.close(false)">
+    <section class="dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <h2>{{ options.title }}</h2>
+      <p>{{ options.message }}</p>
+      <div class="actions">
+        <button type="button" class="btn btn-ghost" (click)="dialog.close(false)">
+          {{ options.cancelLabel }}
+        </button>
+        <button type="button" class="btn btn-danger" (click)="dialog.close(true)">
+          {{ options.confirmLabel }}
+        </button>
+      </div>
+    </section>
+  </div>
+}

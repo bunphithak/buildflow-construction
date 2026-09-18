@@ -1,0 +1,188 @@
+<app-page-header title="รายละเอียดพนักงาน" subtitle="ข้อมูลพนักงานสำหรับใช้กับ Job, ลงเวลา และ Payroll">
+  @if (employee(); as current) {
+    <div class="header-actions">
+      <a routerLink="/employees" class="btn btn-ghost">กลับ</a>
+      <a [routerLink]="['/employees', current.id, 'edit']" class="btn btn-primary">แก้ไขข้อมูล</a>
+    </div>
+  }
+</app-page-header>
+
+@if (loading()) {
+  <app-loading-state />
+} @else if (!employee()) {
+  <app-empty-state title="ไม่พบพนักงาน" message="ข้อมูลนี้อาจถูกลบหรือรหัสไม่ถูกต้อง" />
+} @else {
+  @if (employee(); as employee) {
+    <section class="profile card">
+      <div class="avatar">
+        @if (employee.profileImageUrl) {
+          <img [src]="employee.profileImageUrl" [alt]="fullName(employee)" />
+        } @else {
+          <span>{{ employee.firstName.charAt(0) }}{{ employee.lastName.charAt(0) }}</span>
+        }
+      </div>
+      <div>
+        <h2>{{ fullName(employee) }}</h2>
+        <p>{{ employee.nickname ? 'ชื่อเล่น: ' + employee.nickname : 'ไม่มีชื่อเล่น' }}</p>
+        <div class="meta">
+          <span>{{ employee.employeeCode }}</span>
+          <span>{{ employee.position }}</span>
+          <app-status-badge [status]="employee.status" />
+        </div>
+      </div>
+    </section>
+
+    <nav class="tabs">
+      @for (tab of tabs; track tab.id) {
+        <button
+          type="button"
+          [class.active]="activeTab() === tab.id"
+          (click)="setTab(tab.id)"
+        >
+          {{ tab.label }}
+        </button>
+      }
+    </nav>
+
+    @if (activeTab() === 'general') {
+      <section class="card details">
+        <div><span>ประเภทการจ้าง</span><strong>{{ typeLabels[employee.employmentType] }}</strong></div>
+        <div><span>ค่าแรง/เงินเดือน</span><strong>{{ wage(employee) }}</strong></div>
+        <div><span>ค่า OT</span><strong>{{ overtime(employee) }}</strong></div>
+        <div><span>วันที่เริ่มงาน</span><strong>{{ employee.startDate | thaiDate }}</strong></div>
+        <div><span>เบอร์โทร</span><strong>{{ employee.phone || '-' }}</strong></div>
+        <div><span>ที่อยู่</span><strong>{{ employee.address || '-' }}</strong></div>
+        <div><span>ธนาคาร</span><strong>{{ employee.bankName || '-' }}</strong></div>
+        <div><span>เลขบัญชี</span><strong>{{ employee.bankAccount || '-' }}</strong></div>
+        <div class="span-2"><span>หมายเหตุ</span><strong>{{ employee.note || '-' }}</strong></div>
+      </section>
+    } @else if (activeTab() === 'attendance' || activeTab() === 'labor') {
+      <section class="mini-stats">
+        <article class="card"><span>จำนวนวันที่ทำงาน</span><strong>{{ laborSummary().workDays }}</strong></article>
+        <article class="card"><span>จำนวน Job</span><strong>{{ laborSummary().jobCount }}</strong></article>
+        <article class="card"><span>OT รวม</span><strong>{{ laborSummary().overtime }}</strong></article>
+        <article class="card"><span>ต้นทุนค่าแรงจาก Attendance</span><strong>{{ money(laborSummary().labor) }}</strong></article>
+      </section>
+      <p class="hint">ตัวเลขนี้เป็นต้นทุนค่าแรงจาก Attendance ไม่ใช่เงินเดือนสุทธิจาก Payroll</p>
+      <section class="card filters">
+        <label>
+          เดือน
+          <input type="month" [ngModel]="monthFilter()" (ngModelChange)="monthFilter.set($event)" />
+        </label>
+        <label>
+          Job
+          <select [ngModel]="jobFilter()" (ngModelChange)="jobFilter.set($event)">
+            <option value="">ทั้งหมด</option>
+            @for (job of jobs(); track job.id) {
+              <option [value]="job.id">{{ job.jobCode }} - {{ job.jobName }}</option>
+            }
+          </select>
+        </label>
+      </section>
+      @if (filteredAttendances().length === 0) {
+        <app-empty-state title="ยังไม่มีประวัติลงเวลา" message="เมื่อมีการลงเวลา รายการจะแสดงที่นี่" />
+      } @else {
+        <section class="card table-card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>วันที่</th>
+                  <th>Job</th>
+                  <th>สถานะ</th>
+                  <th>เข้า</th>
+                  <th>ออก</th>
+                  <th>OT</th>
+                  <th>ค่าแรง</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of filteredAttendances(); track item.id) {
+                  <tr>
+                    <td>{{ item.workDate.toDate() | thaiDate:'short' }}</td>
+                    <td>{{ jobName(item.jobId) }}</td>
+                    <td><app-status-badge kind="attendance" [status]="item.status" /></td>
+                    <td>{{ times(item).clockIn }}</td>
+                    <td>{{ times(item).clockOut }}</td>
+                    <td>{{ item.overtimeHours }}</td>
+                    <td>{{ money(item.totalLaborCost) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+    } @else if (activeTab() === 'history') {
+      <app-empty-state
+        title="ประวัติการทำงาน"
+        message="ประวัติ Job ที่พนักงานถูกมอบหมายแสดงในหน้า Job และแท็บลงเวลา"
+      />
+    } @else if (activeTab() === 'advance') {
+      <div class="tab-actions">
+        <a class="btn btn-primary" [routerLink]="['/payroll/advances']" [queryParams]="{ employeeId: employee.id }">+ เงินเบิก</a>
+      </div>
+      @if (advances().length === 0) {
+        <app-empty-state title="ยังไม่มีเงินเบิก" message="บันทึกเงินเบิกล่วงหน้าได้จากปุ่มด้านบน" />
+      } @else {
+        <section class="card table-card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>วันที่</th>
+                  <th>จำนวน</th>
+                  <th>รายละเอียด</th>
+                  <th>สถานะ</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of advances(); track item.id) {
+                  <tr>
+                    <td>{{ item.advanceDate.toDate() | thaiDate:'short' }}</td>
+                    <td>{{ money(item.amount) }}</td>
+                    <td>{{ item.description || '-' }}</td>
+                    <td><app-status-badge kind="advance" [status]="item.status" /></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+    } @else if (activeTab() === 'payslip') {
+      @if (payrolls().length === 0) {
+        <app-empty-state title="ยังไม่มีสลิป" message="เมื่อสร้าง Payroll จะแสดงงวด รายได้ หัก และยอดสุทธิที่นี่" />
+      } @else {
+        <section class="card table-card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>งวด</th>
+                  <th>รายได้</th>
+                  <th>หัก</th>
+                  <th>สุทธิ</th>
+                  <th>สถานะ</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of payrolls(); track item.id) {
+                  <tr>
+                    <td>{{ period(item) }}</td>
+                    <td>{{ money(item.totalIncome) }}</td>
+                    <td>{{ money(item.totalDeduction) }}</td>
+                    <td>{{ money(item.netPay) }}</td>
+                    <td><app-status-badge kind="payroll" [status]="item.status" /></td>
+                    <td><a class="link" [routerLink]="['/payroll', item.id, 'payslip']">ดูสลิป</a></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+    }
+  }
+}

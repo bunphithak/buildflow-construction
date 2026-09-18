@@ -1,0 +1,35 @@
+<main class="login-page">
+  <section class="login-card">
+    <div class="brand">
+      <span class="logo">BF</span>
+      <h1>{{ companyName }}</h1>
+      <p>{{ appName }}</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <label>
+        อีเมล
+        <input type="email" formControlName="email" autocomplete="username" placeholder="name@company.com" />
+      </label>
+      @if (form.controls.email.touched && form.controls.email.invalid) {
+        <small class="field-error">กรุณากรอกอีเมลให้ถูกต้อง</small>
+      }
+
+      <label>
+        รหัสผ่าน
+        <input type="password" formControlName="password" autocomplete="current-password" placeholder="••••••••" />
+      </label>
+      @if (form.controls.password.touched && form.controls.password.invalid) {
+        <small class="field-error">รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร</small>
+      }
+
+      @if (errorMessage(); as message) {
+        <p class="form-error">{{ message }}</p>
+      }
+
+      <button type="submit" [disabled]="submitting()">
+        {{ submitting() ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ' }}
+      </button>
+    </form>
+  </section>
+</main>

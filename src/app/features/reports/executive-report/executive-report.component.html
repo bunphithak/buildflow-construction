@@ -1,0 +1,27 @@
+<app-page-header title="Executive Summary" subtitle="สรุปภาพรวมผู้บริหาร">
+  <a routerLink="/reports" class="btn btn-ghost">กลับ</a>
+</app-page-header>
+<section class="card filters">
+  <label>วันที่เริ่ม <input type="date" [ngModel]="start()" (ngModelChange)="start.set($event)" /></label>
+  <label>วันที่สิ้นสุด <input type="date" [ngModel]="end()" (ngModelChange)="end.set($event)" /></label>
+</section>
+<div class="actions">
+  <button type="button" class="btn btn-primary" (click)="load()">แสดงรายงาน</button>
+  <button type="button" class="btn btn-ghost" (click)="exportPdf()">Export PDF</button>
+</div>
+@if (loading()) {
+  <app-loading-state />
+} @else {
+  @if (report(); as data) {
+  <section class="stats">
+    <article class="card"><span>รายได้รวม</span><strong>{{ money(data.totalRevenue) }}</strong></article>
+    <article class="card"><span>ต้นทุนรวม</span><strong>{{ money(data.totalCost) }}</strong></article>
+    <article class="card"><span>กำไรรวม</span><strong>{{ money(data.totalProfit) }}</strong></article>
+    <article class="card"><span>Margin รวม</span><strong>{{ data.margin | number:'1.2-2' }}%</strong></article>
+    <article class="card"><span>Job เปิด</span><strong>{{ data.openJobs }}</strong></article>
+    <article class="card"><span>Job ปิด</span><strong>{{ data.closedJobs }}</strong></article>
+    <article class="card"><span>Payroll จ่ายแล้ว</span><strong>{{ money(data.payrollPaid) }}</strong></article>
+    <article class="card"><span>Payroll รอจ่าย</span><strong>{{ money(data.payrollPending) }}</strong></article>
+  </section>
+  }
+}

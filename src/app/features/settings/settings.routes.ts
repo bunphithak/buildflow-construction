@@ -1,0 +1,30 @@
+import { Routes } from '@angular/router';
+import { roleGuard } from '../../core/guards/role.guard';
+
+export const settingsRoutes: Routes = [
+  {
+    path: '',
+    canActivate: [roleGuard],
+    data: { roles: ['ADMIN'] },
+    loadComponent: () =>
+      import('./settings-home/settings-home.component').then((m) => m.SettingsHomeComponent),
+  },
+  {
+    path: 'company',
+    canActivate: [roleGuard],
+    data: { roles: ['ADMIN'] },
+    loadComponent: () =>
+      import('./company-settings/company-settings.component').then(
+        (m) => m.CompanySettingsComponent,
+      ),
+  },
+  {
+    path: 'expense-categories',
+    canActivate: [roleGuard],
+    data: { roles: ['ADMIN'] },
+    loadComponent: () =>
+      import('./expense-categories/expense-categories.component').then(
+        (m) => m.ExpenseCategoriesComponent,
+      ),
+  },
+];

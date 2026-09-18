@@ -1,0 +1,174 @@
+<app-page-header
+  [title]="title"
+  [subtitle]="isEdit ? 'แก้ไขข้อมูลพนักงานในระบบ' : 'เพิ่มพนักงานใหม่เข้าสู่ระบบ'"
+/>
+
+@if (loading()) {
+  <app-loading-state message="กำลังโหลดข้อมูลพนักงาน..." />
+} @else {
+  <form class="employee-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <section class="card">
+      <h2>รูปโปรไฟล์</h2>
+      <div class="avatar-row">
+        <div class="avatar">
+          @if (previewUrl(); as url) {
+            <img [src]="url" alt="รูปพนักงาน" />
+          } @else {
+            <span>ไม่มีรูป</span>
+          }
+        </div>
+        <div>
+          <label class="file-btn">
+            เลือกรูป
+            <input type="file" accept="image/jpeg,image/png,image/webp" (change)="onFileSelected($event)" />
+          </label>
+          <p class="hint">รองรับ JPG, PNG, WEBP ขนาดไม่เกิน 5 MB</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>ข้อมูลส่วนตัว</h2>
+      <div class="grid">
+        <label>
+          รหัสพนักงาน *
+          <input type="text" formControlName="employeeCode" placeholder="EMP-001" />
+          @if (hasError('employeeCode', 'required')) {
+            <small>กรุณากรอกรหัสพนักงาน</small>
+          }
+        </label>
+        <label>
+          ชื่อ *
+          <input type="text" formControlName="firstName" />
+          @if (hasError('firstName', 'required')) {
+            <small>กรุณากรอกชื่อ</small>
+          }
+        </label>
+        <label>
+          นามสกุล *
+          <input type="text" formControlName="lastName" />
+          @if (hasError('lastName', 'required')) {
+            <small>กรุณากรอกนามสกุล</small>
+          }
+        </label>
+        <label>
+          ชื่อเล่น
+          <input type="text" formControlName="nickname" />
+        </label>
+        <label>
+          เบอร์โทร
+          <input type="tel" formControlName="phone" />
+        </label>
+        <label class="span-2">
+          ที่อยู่
+          <textarea rows="3" formControlName="address"></textarea>
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>ข้อมูลการทำงาน</h2>
+      <div class="grid">
+        <label>
+          ตำแหน่ง *
+          <input type="text" formControlName="position" />
+          @if (hasError('position', 'required')) {
+            <small>กรุณากรอกตำแหน่ง</small>
+          }
+        </label>
+        <label>
+          แผนก
+          <input type="text" formControlName="department" />
+        </label>
+        <label>
+          วันที่เริ่มงาน *
+          <input type="date" formControlName="startDate" />
+          @if (hasError('startDate', 'required')) {
+            <small>กรุณาระบุวันที่เริ่มงาน</small>
+          }
+        </label>
+        <label>
+          ประเภทการจ้าง *
+          <select formControlName="employmentType">
+            <option value="DAILY">รายวัน</option>
+            <option value="MONTHLY">รายเดือน</option>
+          </select>
+        </label>
+
+        @if (employmentType === 'DAILY') {
+          <label>
+            ค่าแรงต่อวัน *
+            <input type="number" min="0" step="0.01" formControlName="dailyRate" />
+            @if (hasError('dailyRate', 'required')) {
+              <small>กรุณาระบุค่าแรงต่อวัน</small>
+            }
+            @if (hasError('dailyRate', 'min')) {
+              <small>ค่าแรงต้องไม่ติดลบ</small>
+            }
+          </label>
+        } @else {
+          <label>
+            เงินเดือนต่อเดือน *
+            <input type="number" min="0" step="0.01" formControlName="monthlySalary" />
+            @if (hasError('monthlySalary', 'required')) {
+              <small>กรุณาระบุเงินเดือนต่อเดือน</small>
+            }
+            @if (hasError('monthlySalary', 'min')) {
+              <small>เงินเดือนต้องไม่ติดลบ</small>
+            }
+          </label>
+        }
+
+        <label>
+          ค่า OT ต่อชั่วโมง
+          <input type="number" min="0" step="0.01" formControlName="overtimeRate" />
+          @if (hasError('overtimeRate', 'min')) {
+            <small>ค่า OT ต้องไม่ติดลบ</small>
+          }
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>ข้อมูลธนาคาร</h2>
+      <div class="grid">
+        <label>
+          ธนาคาร
+          <input type="text" formControlName="bankName" />
+        </label>
+        <label>
+          เลขบัญชี
+          <input type="text" formControlName="bankAccount" />
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>ข้อมูลอื่นๆ</h2>
+      <div class="grid">
+        <label>
+          สถานะ
+          <select formControlName="status">
+            <option value="ACTIVE">ใช้งาน</option>
+            <option value="INACTIVE">ปิดใช้งาน</option>
+          </select>
+        </label>
+        <label class="span-2">
+          หมายเหตุ
+          <textarea rows="3" formControlName="note"></textarea>
+        </label>
+      </div>
+    </section>
+
+    @if (formError(); as message) {
+      <p class="form-error">{{ message }}</p>
+    }
+
+    <div class="actions">
+      <a routerLink="/employees" class="btn btn-ghost">ยกเลิก</a>
+      <button type="submit" class="btn btn-primary" [disabled]="saving()">
+        {{ saving() ? 'กำลังบันทึก...' : (isEdit ? 'บันทึกการแก้ไข' : 'บันทึกพนักงาน') }}
+      </button>
+    </div>
+  </form>
+}

@@ -1,0 +1,44 @@
+<app-page-header title="รายงานค่าแรง" subtitle="Labor Report">
+  <a routerLink="/reports" class="btn btn-ghost">กลับ</a>
+</app-page-header>
+<section class="card filters">
+  <label>วันที่เริ่ม <input type="date" [ngModel]="start()" (ngModelChange)="start.set($event)" /></label>
+  <label>วันที่สิ้นสุด <input type="date" [ngModel]="end()" (ngModelChange)="end.set($event)" /></label>
+</section>
+<div class="actions">
+  <button type="button" class="btn btn-primary" (click)="load()">แสดงรายงาน</button>
+  <button type="button" class="btn btn-ghost" (click)="exportExcel()">Export Excel</button>
+</div>
+@if (loading()) {
+  <app-loading-state />
+} @else if (rows().length === 0) {
+  <app-empty-state title="ไม่พบค่าแรง" message="ยังไม่มี Attendance ในช่วงนี้" />
+} @else {
+  <section class="stats">
+    <article class="card"><span>Total Labor</span><strong>{{ money(total()) }}</strong></article>
+  </section>
+  <section class="card table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Job</th>
+          <th>จำนวนคน</th>
+          <th>วันทำงาน</th>
+          <th>OT</th>
+          <th>ค่าแรง</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.jobName) {
+          <tr>
+            <td>{{ row.jobName }}</td>
+            <td>{{ row.employeeCount }}</td>
+            <td>{{ row.workDays }}</td>
+            <td>{{ row.overtimeHours }}</td>
+            <td>{{ money(row.laborCost) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+}

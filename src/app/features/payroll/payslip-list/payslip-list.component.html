@@ -1,0 +1,42 @@
+<app-page-header title="สลิปเงินเดือน" subtitle="ดูและพิมพ์สลิปจาก Payroll ที่คำนวณแล้ว">
+  @if (isAdmin()) {
+    <a routerLink="/payroll" class="btn btn-primary">ไปที่ Payroll</a>
+  }
+</app-page-header>
+
+@if (loading()) {
+  <app-loading-state />
+} @else if (payrolls().length === 0) {
+  <app-empty-state title="ยังไม่มีสลิป" message="เมื่อมี Payroll จะแสดงสลิปที่นี่" />
+} @else {
+  <section class="card table-card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>งวด</th>
+            <th>พนักงาน</th>
+            <th>รายได้</th>
+            <th>หัก</th>
+            <th>สุทธิ</th>
+            <th>สถานะ</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of payrolls(); track item.id) {
+            <tr>
+              <td>{{ period(item) }}</td>
+              <td>{{ name(item.employeeId) }}</td>
+              <td>{{ money(item.totalIncome) }}</td>
+              <td>{{ money(item.totalDeduction) }}</td>
+              <td>{{ money(item.netPay) }}</td>
+              <td><app-status-badge kind="payroll" [status]="item.status" /></td>
+              <td><a class="link" [routerLink]="['/payroll', item.id, 'payslip']">ดูสลิป</a></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+}

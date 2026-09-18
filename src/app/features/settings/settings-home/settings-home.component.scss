@@ -1,0 +1,25 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+a.card {
+  text-decoration: none;
+  color: inherit;
+}
+
+h2 {
+  margin: 0 0 0.4rem;
+}
+
+p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+@media (max-width: 720px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

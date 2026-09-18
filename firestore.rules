@@ -1,0 +1,111 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && userDoc().role == 'ADMIN';
+    }
+
+    function isManager() {
+      return isSignedIn() && userDoc().role == 'MANAGER';
+    }
+
+    function isEmployee() {
+      return isSignedIn() && userDoc().role == 'EMPLOYEE';
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin() || isManager());
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.role == 'ADMIN'
+        && request.resource.data.isActive == true;
+      allow update, delete: if isAdmin();
+    }
+
+    match /employees/{employeeId} {
+      allow read: if isAdmin() || isManager() || (isEmployee() && userDoc().employeeId == employeeId);
+      allow write: if isAdmin();
+    }
+
+    match /jobs/{jobId} {
+      allow read: if isAdmin() || isManager() || (
+        isEmployee() &&
+        userDoc().employeeId is string &&
+        userDoc().employeeId in resource.data.assignedEmployeeIds
+      );
+      allow write: if isAdmin();
+    }
+
+    match /jobEmployees/{id} {
+      allow read: if isAdmin() || isManager() || (
+        isEmployee() && resource.data.employeeId == userDoc().employeeId
+      );
+      allow write: if isAdmin();
+    }
+
+    match /attendances/{id} {
+      allow read: if isAdmin() || isManager() || (
+        isEmployee() && resource.data.employeeId == userDoc().employeeId
+      );
+      allow create: if isAdmin() || isManager();
+      allow update: if isAdmin() || isManager();
+      allow delete: if isAdmin();
+    }
+
+    match /expenses/{id} {
+      allow read: if isAdmin() || isManager();
+      allow create: if isAdmin() || (
+        isManager() &&
+        get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.status in ['OPEN', 'IN_PROGRESS']
+      );
+      allow update: if isAdmin() || (
+        isManager() &&
+        get(/databases/$(database)/documents/jobs/$(resource.data.jobId)).data.status in ['OPEN', 'IN_PROGRESS'] &&
+        get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.status in ['OPEN', 'IN_PROGRESS']
+      );
+      allow delete: if isAdmin() || (
+        isManager() &&
+        get(/databases/$(database)/documents/jobs/$(resource.data.jobId)).data.status in ['OPEN', 'IN_PROGRESS']
+      );
+    }
+
+    match /expenseCategories/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /payrolls/{id} {
+      allow read: if isAdmin() || (isEmployee() && resource.data.employeeId == userDoc().employeeId);
+      allow write: if isAdmin();
+    }
+
+    match /payslips/{id} {
+      allow read: if isAdmin() || (isEmployee() && resource.data.employeeId == userDoc().employeeId);
+      allow write: if isAdmin();
+    }
+
+    match /employeeAdvances/{id} {
+      allow read: if isAdmin() || (isEmployee() && resource.data.employeeId == userDoc().employeeId);
+      allow write: if isAdmin();
+    }
+
+    match /payrollAdjustments/{id} {
+      allow read: if isAdmin() || (isEmployee() && resource.data.employeeId == userDoc().employeeId);
+      allow write: if isAdmin();
+    }
+
+    match /settings/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

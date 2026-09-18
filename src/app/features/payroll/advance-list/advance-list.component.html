@@ -1,0 +1,76 @@
+<app-page-header title="เงินเบิก / เงินล่วงหน้า" subtitle="บันทึกเงินเบิกและนำไปหักตอนอนุมัติ Payroll">
+  <a routerLink="/payroll" class="btn btn-ghost">กลับ Payroll</a>
+</app-page-header>
+
+<section class="card">
+  <h2>เพิ่มเงินเบิก</h2>
+  <form class="grid" [formGroup]="form" (ngSubmit)="save()">
+    <label>
+      พนักงาน *
+      <select formControlName="employeeId">
+        <option value="">เลือกพนักงาน</option>
+        @for (item of employees(); track item.id) {
+          <option [value]="item.id">{{ item.employeeCode }} · {{ item.firstName }} {{ item.lastName }}</option>
+        }
+      </select>
+    </label>
+    <label>
+      วันที่ *
+      <input type="date" formControlName="advanceDate" />
+    </label>
+    <label>
+      จำนวนเงิน *
+      <input type="number" min="0.01" step="0.01" inputmode="decimal" formControlName="amount" />
+    </label>
+    <label>
+      รายละเอียด
+      <input type="text" formControlName="description" />
+    </label>
+    <label class="span-2">
+      หมายเหตุ
+      <input type="text" formControlName="note" />
+    </label>
+    <div class="actions">
+      <button type="submit" class="btn btn-primary">บันทึก</button>
+    </div>
+  </form>
+</section>
+
+@if (loading()) {
+  <app-loading-state />
+} @else if (advances().length === 0) {
+  <app-empty-state title="ยังไม่มีเงินเบิก" message="บันทึกรายการเบิกด้านบน" />
+} @else {
+  <section class="card table-card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>วันที่</th>
+            <th>พนักงาน</th>
+            <th>จำนวน</th>
+            <th>รายละเอียด</th>
+            <th>สถานะ</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of advances(); track item.id) {
+            <tr>
+              <td>{{ item.advanceDate.toDate() | thaiDate:'short' }}</td>
+              <td>{{ employeeName(item.employeeId) }}</td>
+              <td>{{ money(item.amount) }}</td>
+              <td>{{ item.description || '-' }}</td>
+              <td><app-status-badge kind="advance" [status]="item.status" /></td>
+              <td>
+                @if (item.status === 'PENDING') {
+                  <button type="button" class="link" (click)="cancel(item)">ยกเลิก</button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+}

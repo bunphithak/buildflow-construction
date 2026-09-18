@@ -1,0 +1,33 @@
+<app-page-header title="ข้อมูลกิจการ" subtitle="ใช้บนสลิปเงินเดือนและหัวเอกสาร">
+  <a routerLink="/settings" class="btn btn-ghost">กลับ</a>
+</app-page-header>
+
+<form class="card grid" [formGroup]="form" (ngSubmit)="save()">
+  <label>
+    ชื่อกิจการ *
+    <input type="text" formControlName="companyName" />
+  </label>
+  <label>
+    โทรศัพท์
+    <input type="text" formControlName="phone" />
+  </label>
+  <label class="span-2">
+    ที่อยู่
+    <textarea rows="3" formControlName="address"></textarea>
+  </label>
+  <label>
+    เลขผู้เสียภาษี
+    <input type="text" formControlName="taxId" />
+  </label>
+  <label>
+    Logo URL
+    <input type="url" formControlName="logoUrl" placeholder="https://" />
+  </label>
+  <label class="check span-2">
+    <input type="checkbox" formControlName="monthlyAbsenceDeductionEnabled" />
+    เตรียมหักขาดงานพนักงานรายเดือนอัตโนมัติ (ค่าเริ่มต้นปิด — Phase นี้ยังไม่หักอัตโนมัติ)
+  </label>
+  <div class="actions">
+    <button type="submit" class="btn btn-primary">บันทึก</button>
+  </div>
+</form>

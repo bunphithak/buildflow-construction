@@ -1,0 +1,83 @@
+<app-page-header title="รายงานลงเวลาทำงาน" subtitle="Attendance Report">
+  <a routerLink="/reports" class="btn btn-ghost">กลับ</a>
+</app-page-header>
+
+<section class="card filters">
+  <label>วันที่เริ่ม <input type="date" [ngModel]="start()" (ngModelChange)="start.set($event)" /></label>
+  <label>วันที่สิ้นสุด <input type="date" [ngModel]="end()" (ngModelChange)="end.set($event)" /></label>
+  <label>
+    Job
+    <select [ngModel]="jobId()" (ngModelChange)="jobId.set($event)">
+      <option value="">ทั้งหมด</option>
+      @for (job of jobs.jobs(); track job.id) {
+        <option [value]="job.id">{{ job.jobCode }} {{ job.jobName }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    พนักงาน
+    <select [ngModel]="employeeId()" (ngModelChange)="employeeId.set($event)">
+      <option value="">ทั้งหมด</option>
+      @for (item of employees.employees(); track item.id) {
+        <option [value]="item.id">{{ item.employeeCode }} {{ item.firstName }} {{ item.lastName }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    สถานะ
+    <select [ngModel]="status()" (ngModelChange)="status.set($event)">
+      <option value="">ทั้งหมด</option>
+      @for (item of statuses; track item) {
+        <option [value]="item">{{ statusLabels[item] }}</option>
+      }
+    </select>
+  </label>
+</section>
+<div class="actions">
+  <button type="button" class="btn btn-primary" (click)="load()">แสดงรายงาน</button>
+  <button type="button" class="btn btn-ghost" (click)="exportExcel()">Export Excel</button>
+  <button type="button" class="btn btn-ghost" (click)="exportPdf()">Export PDF</button>
+</div>
+
+@if (loading()) {
+  <app-loading-state />
+} @else {
+  @if (report(); as data) {
+  <section class="stats">
+    <article class="card"><span>จำนวนวันทำงาน</span><strong>{{ data.workDayCount }}</strong></article>
+    <article class="card"><span>OT รวม</span><strong>{{ data.overtimeHours }}</strong></article>
+  </section>
+  @if (data.rows.length === 0) {
+    <app-empty-state title="ไม่พบรายการ" message="ลองปรับตัวกรอง" />
+  } @else {
+    <section class="card table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>วันที่</th>
+            <th>พนักงาน</th>
+            <th>Job</th>
+            <th>เข้า</th>
+            <th>ออก</th>
+            <th>OT</th>
+            <th>สถานะ</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of data.rows; track $index) {
+            <tr>
+              <td>{{ row.date }}</td>
+              <td>{{ row.employeeName }}</td>
+              <td>{{ row.jobName }}</td>
+              <td>{{ row.clockIn }}</td>
+              <td>{{ row.clockOut }}</td>
+              <td>{{ row.overtimeHours }}</td>
+              <td>{{ row.status }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  }
+  }
+}

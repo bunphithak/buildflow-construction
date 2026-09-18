@@ -1,0 +1,124 @@
+<app-page-header title="ค่าใช้จ่าย" subtitle="บันทึกและติดตามค่าใช้จ่ายของแต่ละ Job">
+  <a routerLink="/expenses/new" class="btn btn-primary">+ เพิ่มค่าใช้จ่าย</a>
+</app-page-header>
+
+<section class="stats">
+  <article class="card">
+    <span>ค่าใช้จ่ายทั้งหมด</span>
+    <strong>{{ money(totals().total) }}</strong>
+  </article>
+  <article class="card">
+    <span>ค่าวัสดุ</span>
+    <strong>{{ money(totals().material) }}</strong>
+  </article>
+  <article class="card">
+    <span>ค่าน้ำมัน</span>
+    <strong>{{ money(totals().fuel) }}</strong>
+  </article>
+  <article class="card">
+    <span>ค่าเครื่องจักร</span>
+    <strong>{{ money(totals().machine) }}</strong>
+  </article>
+  <article class="card">
+    <span>ค่าใช้จ่ายอื่น</span>
+    <strong>{{ money(totals().other) }}</strong>
+  </article>
+</section>
+
+<section class="card filters">
+  <label>
+    ช่วงวันที่
+    <select [ngModel]="datePreset()" (ngModelChange)="onPresetChange($event)">
+      <option value="today">วันนี้</option>
+      <option value="month">เดือนนี้</option>
+      <option value="all">ทั้งหมด</option>
+      <option value="range">เลือกช่วงวันที่</option>
+    </select>
+  </label>
+  <label>
+    วันที่เริ่ม
+    <input type="date" [ngModel]="startDate()" (ngModelChange)="startDate.set($event); onRangeChange()" />
+  </label>
+  <label>
+    วันที่สิ้นสุด
+    <input type="date" [ngModel]="endDate()" (ngModelChange)="endDate.set($event); onRangeChange()" />
+  </label>
+  <label>
+    Job
+    <select [ngModel]="jobFilter()" (ngModelChange)="onJobChange($event)">
+      <option value="">ทั้งหมด</option>
+      @for (job of jobService.jobs(); track job.id) {
+        <option [value]="job.id">{{ job.jobCode }} · {{ job.jobName }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    หมวดค่าใช้จ่าย
+    <select [ngModel]="categoryFilter()" (ngModelChange)="onCategoryChange($event)">
+      <option value="">ทั้งหมด</option>
+      @for (category of categories(); track category.id) {
+        <option [value]="category.id">{{ category.name }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    ค้นหา
+    <input
+      type="search"
+      placeholder="รายละเอียด, ร้านค้า, เลขที่เอกสาร"
+      [ngModel]="search()"
+      (ngModelChange)="search.set($event)"
+    />
+  </label>
+</section>
+
+@if (loading()) {
+  <app-loading-state />
+} @else if (filtered().length === 0) {
+  <app-empty-state title="ไม่พบค่าใช้จ่าย" message="ลองปรับตัวกรอง หรือเพิ่มรายการใหม่" />
+} @else {
+  <section class="card table-card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>วันที่</th>
+            <th>Job</th>
+            <th>หมวด</th>
+            <th>รายละเอียด</th>
+            <th>จำนวน</th>
+            <th>หน่วย</th>
+            <th>ราคาต่อหน่วย</th>
+            <th>ยอดเงิน</th>
+            <th>ร้านค้า</th>
+            <th>เอกสาร</th>
+            <th>จัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of filtered(); track item.id) {
+            <tr>
+              <td>{{ item.expenseDate.toDate() | thaiDate:'short' }}</td>
+              <td>{{ jobLabel(item.jobId) }}</td>
+              <td>{{ categoryName(item) }}</td>
+              <td>{{ item.description }}</td>
+              <td>{{ item.quantity ?? '-' }}</td>
+              <td>{{ item.unit || '-' }}</td>
+              <td>{{ item.unitPrice != null ? amount(item.unitPrice) : '-' }}</td>
+              <td>{{ money(item.amount) }}</td>
+              <td>{{ item.vendor || '-' }}</td>
+              <td>{{ item.documentNo || '-' }}</td>
+              <td>
+                <div class="actions">
+                  <a class="link" [routerLink]="['/expenses', item.id]">ดู</a>
+                  <a class="link" [routerLink]="['/expenses', item.id, 'edit']">แก้ไข</a>
+                  <button type="button" class="link danger" (click)="remove(item)">ลบ</button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+}

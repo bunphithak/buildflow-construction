@@ -1,0 +1,68 @@
+<app-page-header title="หมวดค่าใช้จ่าย" subtitle="ใช้หมวดเหล่านี้ตอนบันทึกค่าใช้จ่ายของ Job">
+  <a routerLink="/settings" class="btn btn-ghost">กลับ</a>
+</app-page-header>
+
+<section class="card">
+  <h2>{{ editingId() ? 'แก้ไขหมวด' : 'เพิ่มหมวด' }}</h2>
+  <form class="grid" [formGroup]="form" (ngSubmit)="save()">
+    <label>
+      รหัส *
+      <input type="text" formControlName="code" placeholder="MAT" />
+    </label>
+    <label>
+      ชื่อหมวด *
+      <input type="text" formControlName="name" placeholder="ค่าวัสดุก่อสร้าง" />
+    </label>
+    <label>
+      ลำดับ
+      <input type="number" formControlName="sortOrder" />
+    </label>
+    <div class="actions">
+      @if (editingId()) {
+        <button type="button" class="btn btn-ghost" (click)="cancelEdit()">ยกเลิก</button>
+      }
+      <button type="submit" class="btn btn-primary" [disabled]="saving()">
+        {{ saving() ? 'กำลังบันทึก...' : 'บันทึก' }}
+      </button>
+    </div>
+  </form>
+</section>
+
+@if (categoryService.loading()) {
+  <app-loading-state />
+} @else {
+  <section class="card table-card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ลำดับ</th>
+            <th>รหัส</th>
+            <th>ชื่อ</th>
+            <th>สถานะ</th>
+            <th>จัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of categoryService.categories(); track item.id) {
+            <tr>
+              <td>{{ item.sortOrder }}</td>
+              <td>{{ item.code }}</td>
+              <td>{{ item.name }}</td>
+              <td><app-status-badge kind="employee" [status]="item.status" /></td>
+              <td>
+                <div class="row-actions">
+                  <button type="button" class="link" (click)="startEdit(item)">แก้ไข</button>
+                  <button type="button" class="link" (click)="toggle(item)">
+                    {{ item.status === 'ACTIVE' ? 'ปิดใช้งาน' : 'เปิดใช้งาน' }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="hint">ไม่ลบหมวดที่เคยถูกใช้ ให้เปลี่ยนเป็นปิดใช้งาน เพื่อคงประวัติค่าใช้จ่ายเดิม</p>
+  </section>
+}

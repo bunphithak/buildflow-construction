@@ -1,0 +1,117 @@
+<app-page-header title="Dashboard" [subtitle]="'ภาพรวมผู้บริหาร · ' + rangeLabel()" />
+
+<section class="card filters no-print">
+  <label>
+    ช่วงเวลา
+    <select [ngModel]="preset()" (ngModelChange)="setPreset($event)">
+      <option value="today">วันนี้</option>
+      <option value="week">สัปดาห์นี้</option>
+      <option value="month">เดือนนี้</option>
+      <option value="year">ปีนี้</option>
+      <option value="custom">กำหนดเอง</option>
+    </select>
+  </label>
+  <label>
+    Job
+    <select [ngModel]="jobId()" (ngModelChange)="setJob($event)">
+      <option value="">ทุกงาน</option>
+      @for (job of jobs.jobs(); track job.id) {
+        <option [value]="job.id">{{ job.jobCode }} {{ job.jobName }}</option>
+      }
+    </select>
+  </label>
+  @if (preset() === 'custom') {
+    <label>วันที่เริ่ม <input type="date" [ngModel]="customStart()" (ngModelChange)="customStart.set($event); reload()" /></label>
+    <label>วันที่สิ้นสุด <input type="date" [ngModel]="customEnd()" (ngModelChange)="customEnd.set($event); reload()" /></label>
+  }
+</section>
+
+@if (loading()) {
+  <app-loading-state />
+} @else {
+  @if (summary(); as data) {
+  <section class="stats">
+    @if (canSeeFinance()) {
+      <a class="card link-card" routerLink="/employees"><span>{{ jobId() ? 'พนักงานในงาน' : 'พนักงานทั้งหมด' }}</span><strong>{{ data.employeeCount }}</strong></a>
+      <a class="card link-card" routerLink="/reports/attendance"><span>มาทำงาน</span><strong>{{ data.presentToday }}</strong></a>
+      <a class="card link-card" routerLink="/reports/attendance"><span>ขาดงาน</span><strong>{{ data.absentToday }}</strong></a>
+      <a class="card link-card" routerLink="/jobs"><span>Job ที่เปิดอยู่</span><strong>{{ data.openJobs }}</strong></a>
+      <a class="card link-card" routerLink="/jobs"><span>Job เสร็จแล้ว</span><strong>{{ data.completedJobs }}</strong></a>
+      <a class="card link-card" routerLink="/reports/labor"><span>ค่าแรง</span><strong>{{ money(data.laborCost) }}</strong></a>
+      <a class="card link-card" routerLink="/reports/expenses"><span>ค่าใช้จ่าย</span><strong>{{ money(data.expenseCost) }}</strong></a>
+      @if (!jobId()) {
+        <a class="card link-card" routerLink="/payroll"><span>ยอดจ่าย Payroll</span><strong>{{ money(data.payrollPaid) }}</strong></a>
+      }
+    } @else {
+      <article class="card"><span>มาทำงาน</span><strong>{{ data.presentToday }}</strong></article>
+      <article class="card"><span>ขาดงาน</span><strong>{{ data.absentToday }}</strong></article>
+      <article class="card"><span>ลา</span><strong>{{ data.attendance.leave }}</strong></article>
+      <article class="card"><span>ครึ่งวัน</span><strong>{{ data.attendance.halfDay }}</strong></article>
+    }
+  </section>
+
+  <section class="card">
+    <h2>การลงเวลา</h2>
+    <div class="mini">
+      <span>Present {{ data.attendance.present }}</span>
+      <span>Absent {{ data.attendance.absent }}</span>
+      <span>Leave {{ data.attendance.leave }}</span>
+      <span>Half Day {{ data.attendance.halfDay }}</span>
+    </div>
+  </section>
+
+  @if (canSeeFinance()) {
+    <section class="split">
+      <article class="card">
+        <h2>Top 5 Job กำไรสูงสุด</h2>
+        @if (data.topProfitJobs.length === 0) {
+          <app-empty-state title="ยังไม่มีข้อมูล" message="เมื่อมี Attendance และค่าใช้จ่าย จะแสดงกำไรโดยประมาณ" />
+        } @else {
+          @for (job of data.topProfitJobs; track job.jobId) {
+            <a class="row" [routerLink]="['/jobs', job.jobId]">
+              <span>{{ job.jobName }}</span>
+              <strong>{{ money(job.estimatedProfit) }} · {{ job.profitMargin | number:'1.2-2' }}%</strong>
+            </a>
+          }
+        }
+      </article>
+      <article class="card">
+        <h2>Top 5 Job ใช้เงินมากที่สุด</h2>
+        @if (data.topSpendJobs.length === 0) {
+          <app-empty-state title="ยังไม่มีข้อมูล" message="เมื่อมีต้นทุนในช่วงนี้ จะแสดงงานที่ใช้เงินมากที่สุด" />
+        } @else {
+          @for (job of data.topSpendJobs; track job.jobId) {
+            <a class="row" [routerLink]="['/jobs', job.jobId]">
+              <span>{{ job.jobName }}</span>
+              <strong>{{ money(job.totalCost) }}</strong>
+            </a>
+          }
+        }
+      </article>
+    </section>
+
+    <section class="card">
+      <h2>งานที่เกินงบ</h2>
+      @if (data.overBudgetJobs.length === 0) {
+        <p class="hint">ยังไม่มีงานที่ต้นทุนในช่วงนี้เกินงบประมาณ</p>
+      } @else {
+        @for (job of data.overBudgetJobs; track job.jobId) {
+          <a class="row" [routerLink]="['/jobs', job.jobId]">
+            <span>{{ job.jobName }}</span>
+            <strong class="badge-over">{{ money(job.estimatedBudget) }} · ใช้ {{ money(job.totalCost) }} · {{ job.budgetUsedPercent | number:'1.0-0' }}% เกินงบประมาณ</strong>
+          </a>
+        }
+      }
+    </section>
+
+    <section class="charts">
+      <article class="card"><h2>ค่าแรงรายเดือน</h2><app-simple-chart type="bar" seriesLabel="ค่าแรง" [labels]="data.monthlyLabor.labels" [values]="data.monthlyLabor.values" /></article>
+      <article class="card"><h2>ค่าใช้จ่ายรายเดือน</h2><app-simple-chart type="bar" seriesLabel="ค่าใช้จ่าย" [labels]="data.monthlyExpense.labels" [values]="data.monthlyExpense.values" /></article>
+      <article class="card"><h2>ต้นทุนรวมรายเดือน</h2><app-simple-chart type="line" seriesLabel="ต้นทุน" [labels]="data.monthlyTotalCost.labels" [values]="data.monthlyTotalCost.values" /></article>
+      <article class="card"><h2>กำไรประมาณการรายเดือน</h2><app-simple-chart type="line" seriesLabel="กำไร" [labels]="data.monthlyProfit.labels" [values]="data.monthlyProfit.values" /></article>
+      <article class="card"><h2>ค่าใช้จ่ายแยกตามหมวด</h2><app-simple-chart type="doughnut" seriesLabel="หมวด" [labels]="data.expenseByCategory.labels" [values]="data.expenseByCategory.values" /></article>
+      <article class="card"><h2>ค่าแรงแยกตาม Job</h2><app-simple-chart type="bar" seriesLabel="ค่าแรง" [labels]="data.laborByJob.labels" [values]="data.laborByJob.values" /></article>
+    </section>
+  }
+  }
+}

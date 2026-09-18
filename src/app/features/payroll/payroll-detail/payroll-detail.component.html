@@ -1,0 +1,168 @@
+@if (loading()) {
+  <app-loading-state />
+} @else if (!payroll() || !employee()) {
+  <app-empty-state title="ไม่พบ Payroll" message="รายการนี้อาจถูกลบแล้ว" />
+} @else {
+  @if (payroll(); as item) {
+    @if (employee(); as employee) {
+      <app-page-header [title]="fullName(employee)" [subtitle]="employee.employeeCode + ' · ' + periodLabel(item)">
+        <div class="header-actions no-print">
+          <app-status-badge kind="payroll" [status]="item.status" />
+          <a class="btn btn-ghost" routerLink="/payroll">กลับ</a>
+          <a class="btn btn-ghost" [routerLink]="['/payroll', item.id, 'payslip']">สลิป</a>
+        </div>
+      </app-page-header>
+
+      @if (attendanceOutOfDate()) {
+        <p class="warning">
+          ตารางลงเวลาเป็นข้อมูลล่าสุด ({{ liveAttendanceSummary()?.totalWorkDays }} วันเต็ม)
+          แต่ Payroll ยังนับตามตอนสร้างงวด ({{ payroll()?.totalWorkDays }} วันเต็ม)
+          กด “คำนวณใหม่จาก Attendance” เพื่ออัปเดตค่าแรง
+        </p>
+      }
+
+      <section class="stats">
+        <article class="card"><span>เงินเดือน/ค่าแรง</span><strong>{{ money(item.basePay) }}</strong></article>
+        <article class="card"><span>OT</span><strong>{{ money(item.overtimePay) }}</strong></article>
+        <article class="card"><span>เงินเพิ่ม</span><strong>{{ money(item.additionalIncome) }}</strong></article>
+        <article class="card"><span>โบนัส</span><strong>{{ money(item.bonus) }}</strong></article>
+        <article class="card"><span>รวมรายได้</span><strong>{{ money(item.totalIncome) }}</strong></article>
+        <article class="card"><span>เงินเบิก</span><strong>{{ money(item.advanceDeduction) }}</strong></article>
+        <article class="card"><span>เงินหัก</span><strong>{{ money(item.otherDeduction) }}</strong></article>
+        <article class="card"><span>ยอดสุทธิ</span><strong>{{ money(item.netPay) }}</strong></article>
+      </section>
+
+      @if (isAdmin()) {
+        <div class="header-actions no-print">
+          @if (!locked()) {
+            <button type="button" class="btn btn-ghost" (click)="recalculate()">คำนวณใหม่จาก Attendance</button>
+            @if (item.status === 'CALCULATED') {
+              <button type="button" class="btn btn-ghost" (click)="revertDraft()">กลับเป็นแบบร่าง</button>
+            }
+            <button type="button" class="btn btn-primary" (click)="approve()">อนุมัติ Payroll</button>
+          }
+          @if (item.status === 'APPROVED') {
+            <button type="button" class="btn btn-ghost" (click)="unapprove()">ยกเลิกการอนุมัติ</button>
+            <button type="button" class="btn btn-primary" (click)="markPaid()">บันทึกว่าจ่ายแล้ว</button>
+          }
+        </div>
+      }
+
+      <section class="card">
+        <h2>ข้อมูลการทำงาน</h2>
+        <div class="mini">
+          <span>วันทำงานเต็ม {{ item.totalWorkDays }}</span>
+          <span>ครึ่งวัน {{ item.totalHalfDays }}</span>
+          <span>ขาด {{ item.totalAbsentDays }}</span>
+          <span>ลา {{ item.totalLeaveDays }}</span>
+          <span>OT {{ item.totalOvertimeHours }} ชม.</span>
+          <span>ประเภท {{ typeLabels[item.employmentTypeSnapshot] }}</span>
+        </div>
+        <p class="hint">วันทำงานนับตามปฏิทินในช่วงตัดยอด ไม่นับซ้ำแม้มีหลาย Job ในวันเดียวกัน · ตัวเลขนี้ไม่ใช่ต้นทุน Job</p>
+        @if (attendances().length === 0) {
+          <app-empty-state title="ไม่มีรายการลงเวลาในงวดนี้" message="สามารถมี Payroll ได้แม้ยังไม่มี Attendance" />
+        } @else {
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>วันที่</th>
+                  <th>Job</th>
+                  <th>เข้า</th>
+                  <th>ออก</th>
+                  <th>สถานะ</th>
+                  <th>OT</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of attendances(); track row.id) {
+                  <tr>
+                    <td>{{ row.workDate.toDate() | thaiDate:'short' }}</td>
+                    <td>{{ jobName(row.jobId) }}</td>
+                    <td>{{ times(row).clockIn }}</td>
+                    <td>{{ times(row).clockOut }}</td>
+                    <td><app-status-badge kind="attendance" [status]="row.status" /></td>
+                    <td>{{ row.overtimeHours }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+
+      <section class="grid-2">
+        <article class="card">
+          <h2>รายได้เพิ่มเติม</h2>
+          @for (row of incomes(); track row.id) {
+            <div class="row">
+              <span>{{ row.category }} · {{ row.description }}</span>
+              <strong>{{ money(row.amount) }}</strong>
+              @if (isAdmin() && !locked()) {
+                <button type="button" class="link" (click)="removeAdjustment(row.id)">ลบ</button>
+              }
+            </div>
+          }
+          @if (isAdmin() && !locked()) {
+            <form [formGroup]="incomeForm" (ngSubmit)="addIncome()" class="adjust-form">
+              <select formControlName="category">
+                @for (category of incomeCategories; track category) {
+                  <option [value]="category">{{ category }}</option>
+                }
+              </select>
+              <input type="text" formControlName="description" placeholder="รายละเอียด" />
+              <input type="number" min="0.01" step="0.01" formControlName="amount" placeholder="จำนวน" />
+              <button type="submit" class="btn btn-primary">+ เพิ่มรายการ</button>
+            </form>
+          }
+        </article>
+        <article class="card">
+          <h2>รายการหัก</h2>
+          @for (row of deductions(); track row.id) {
+            <div class="row">
+              <span>{{ row.category }} · {{ row.description }}</span>
+              <strong>{{ money(row.amount) }}</strong>
+              @if (isAdmin() && !locked()) {
+                <button type="button" class="link" (click)="removeAdjustment(row.id)">ลบ</button>
+              }
+            </div>
+          }
+          @if (isAdmin() && !locked()) {
+            <form [formGroup]="deductionForm" (ngSubmit)="addDeduction()" class="adjust-form">
+              <select formControlName="category">
+                @for (category of deductionCategories; track category) {
+                  <option [value]="category">{{ category }}</option>
+                }
+              </select>
+              <input type="text" formControlName="description" placeholder="รายละเอียด" />
+              <input type="number" min="0.01" step="0.01" formControlName="amount" placeholder="จำนวน" />
+              <button type="submit" class="btn btn-primary">+ เพิ่มรายการ</button>
+            </form>
+          }
+        </article>
+      </section>
+
+      <section class="card">
+        <h2>เงินเบิกที่นำมาหัก</h2>
+        <p class="hint">จะเปลี่ยนเป็นหักแล้วเมื่ออนุมัติ Payroll เท่านั้น</p>
+        @for (advance of pendingAdvances(); track advance.id) {
+          <label class="check">
+            <input
+              type="checkbox"
+              [checked]="selectedAdvanceIds().includes(advance.id)"
+              [disabled]="!isAdmin() || locked()"
+              (change)="onAdvanceCheck(advance.id, $event)"
+            />
+            {{ advance.advanceDate.toDate() | thaiDate:'short' }}
+            · {{ money(advance.amount) }}
+            · {{ advance.description || 'เบิกล่วงหน้า' }}
+            · {{ advance.status }}
+          </label>
+        }
+        @if (isAdmin() && !locked()) {
+          <button type="button" class="btn btn-ghost" (click)="saveAdvances()">บันทึกเงินเบิกที่เลือก</button>
+        }
+      </section>
+    }
+  }
+}

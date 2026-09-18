@@ -1,0 +1,106 @@
+<app-page-header title="สร้างงวด Payroll" [subtitle]="periodLabel()">
+  <a routerLink="/payroll" class="btn btn-ghost">กลับ</a>
+</app-page-header>
+
+<section class="card filters">
+  <label>
+    เดือนอ้างอิง
+    <select [ngModel]="month()" (ngModelChange)="month.set(+$event); onMonthYearChange()">
+      @for (item of months; track item) {
+        <option [ngValue]="item">{{ monthName(item) }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    ปี (ค.ศ.)
+    <select [ngModel]="year()" (ngModelChange)="year.set(+$event); onMonthYearChange()">
+      @for (item of years; track item) {
+        <option [ngValue]="item">{{ item }} (พ.ศ. {{ item + 543 }})</option>
+      }
+    </select>
+  </label>
+  <label>
+    ช่วงตัดยอด
+    <select [ngModel]="preset()" (ngModelChange)="setPreset($event)">
+      <option value="first_half">วันที่ 1–15 (จ่าย 20)</option>
+      <option value="second_half">วันที่ 16–สิ้นเดือน (จ่าย 5 เดือนถัดไป)</option>
+      <option value="full_month">ทั้งเดือน</option>
+      <option value="custom">กำหนดวันที่เอง</option>
+    </select>
+  </label>
+  <label>
+    วันจ่าย
+    <input type="date" [ngModel]="payDate()" (ngModelChange)="payDate.set($event)" />
+  </label>
+  @if (preset() === 'custom') {
+    <label>
+      เริ่มตัดยอด
+      <input type="date" [ngModel]="customStart()" (ngModelChange)="customStart.set($event); preview()" />
+    </label>
+    <label>
+      สิ้นสุดตัดยอด
+      <input type="date" [ngModel]="customEnd()" (ngModelChange)="customEnd.set($event); preview()" />
+    </label>
+  }
+</section>
+
+<p class="hint">
+  นับ Attendance ตามช่วงตัดยอด ไม่ใช่ทั้งเดือนปฏิทิน เช่น ตัด 15 จ่าย 20 และตัดสิ้นเดือนจ่ายวันที่ 5
+  · พนักงานรายเดือนจะถูกเฉลี่ยเงินเดือนตามจำนวนวันในช่วงที่เลือก
+</p>
+
+@if (loading()) {
+  <app-loading-state />
+} @else if (rows().length === 0) {
+  <app-empty-state title="ไม่มีพนักงานในช่วงตัดยอดนี้" message="ไม่มีคนที่มาทำงานหรือครึ่งวันในช่วงวันที่ที่เลือก จึงยังไม่ต้องสร้าง Payroll" />
+} @else {
+  <section class="card table-card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>รหัส</th>
+            <th>พนักงาน</th>
+            <th>ประเภท</th>
+            <th>วันทำงาน</th>
+            <th>ครึ่งวัน</th>
+            <th>OT</th>
+            <th>ค่าแรง</th>
+            <th>OT</th>
+            <th>เงินเบิก</th>
+            <th>สุทธิ</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.employee.id) {
+            <tr>
+              <td>{{ row.employee.employeeCode }}</td>
+              <td>{{ row.employee.firstName }} {{ row.employee.lastName }}</td>
+              <td>{{ typeLabels[row.employee.employmentType] }}</td>
+              <td>{{ row.workDays }}</td>
+              <td>{{ row.halfDays }}</td>
+              <td>{{ row.overtimeHours }}</td>
+              <td>{{ amount(row.basePay) }}</td>
+              <td>{{ amount(row.overtimePay) }}</td>
+              <td>{{ amount(row.advance) }}</td>
+              <td>{{ money(row.netPay) }}</td>
+              <td>
+                @if (row.existing) {
+                  <a class="link" [routerLink]="['/payroll', row.existing.id]">มี Payroll ในช่วงนี้แล้ว</a>
+                } @else {
+                  <span>พร้อมสร้าง</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <div class="actions">
+    <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="generate()">
+      {{ saving() ? 'กำลังสร้าง...' : 'สร้าง Payroll' }}
+    </button>
+  </div>
+}

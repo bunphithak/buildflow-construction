@@ -1,0 +1,60 @@
+<app-page-header title="รายงานค่าใช้จ่าย" subtitle="Expense Report">
+  <a routerLink="/reports" class="btn btn-ghost">กลับ</a>
+</app-page-header>
+<section class="card filters">
+  <label>วันที่เริ่ม <input type="date" [ngModel]="start()" (ngModelChange)="start.set($event)" /></label>
+  <label>วันที่สิ้นสุด <input type="date" [ngModel]="end()" (ngModelChange)="end.set($event)" /></label>
+  <label>
+    Job
+    <select [ngModel]="jobId()" (ngModelChange)="jobId.set($event)">
+      <option value="">ทั้งหมด</option>
+      @for (job of jobs.jobs(); track job.id) {
+        <option [value]="job.id">{{ job.jobCode }} {{ job.jobName }}</option>
+      }
+    </select>
+  </label>
+</section>
+<div class="actions">
+  <button type="button" class="btn btn-primary" (click)="load()">แสดงรายงาน</button>
+  <button type="button" class="btn btn-ghost" (click)="exportExcel()">Export Excel</button>
+  <button type="button" class="btn btn-ghost" (click)="exportPdf()">Export PDF</button>
+</div>
+@if (loading()) {
+  <app-loading-state />
+} @else {
+  @if (summary(); as sum) {
+  <section class="stats">
+    <article class="card"><span>วัสดุ</span><strong>{{ money(sum.material) }}</strong></article>
+    <article class="card"><span>น้ำมัน</span><strong>{{ money(sum.fuel) }}</strong></article>
+    <article class="card"><span>เครื่องจักร</span><strong>{{ money(sum.machine) }}</strong></article>
+    <article class="card"><span>Safety</span><strong>{{ money(sum.safety) }}</strong></article>
+    <article class="card"><span>อื่นๆ</span><strong>{{ money(sum.other) }}</strong></article>
+  </section>
+  @if (rows().length === 0) {
+    <app-empty-state title="ไม่พบค่าใช้จ่าย" message="ลองปรับช่วงวันที่" />
+  } @else {
+    <section class="card table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Job</th>
+            <th>หมวด</th>
+            <th>จำนวนรายการ</th>
+            <th>ยอดรวม</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.jobName + row.category) {
+            <tr>
+              <td>{{ row.jobName }}</td>
+              <td>{{ row.category }}</td>
+              <td>{{ row.itemCount }}</td>
+              <td>{{ money(row.amount) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  }
+  }
+}

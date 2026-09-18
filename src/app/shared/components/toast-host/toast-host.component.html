@@ -1,0 +1,5 @@
+<div class="toast-host" aria-live="polite">
+  @for (message of toast.messages(); track message.id) {
+    <div class="toast" [class]="message.type">{{ message.text }}</div>
+  }
+</div>

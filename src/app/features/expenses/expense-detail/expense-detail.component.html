@@ -1,0 +1,48 @@
+@if (loading()) {
+  <app-loading-state />
+} @else if (!expense()) {
+  <app-empty-state title="ไม่พบค่าใช้จ่าย" message="รายการนี้อาจถูกลบแล้ว" />
+} @else {
+  @if (expense(); as item) {
+  <app-page-header title="รายละเอียดค่าใช้จ่าย" [subtitle]="item.description">
+    <div class="header-actions">
+      <a class="btn btn-ghost" routerLink="/expenses">กลับ</a>
+      <a class="btn btn-primary" [routerLink]="['/expenses', item.id, 'edit']">แก้ไข</a>
+    </div>
+  </app-page-header>
+
+  <section class="card details">
+    <div><span>วันที่</span><strong>{{ item.expenseDate.toDate() | thaiDate:'short' }}</strong></div>
+    <div><span>Job</span><strong>{{ jobLabel() }}</strong></div>
+    <div><span>หมวด</span><strong>{{ categoryName(item) }}</strong></div>
+    <div><span>รายละเอียด</span><strong>{{ item.description }}</strong></div>
+    <div><span>จำนวน</span><strong>{{ item.quantity ?? '-' }}</strong></div>
+    <div><span>หน่วย</span><strong>{{ item.unit || '-' }}</strong></div>
+    <div><span>ราคาต่อหน่วย</span><strong>{{ item.unitPrice != null ? amount(item.unitPrice) : '-' }}</strong></div>
+    <div><span>ยอดรวม</span><strong>{{ money(item.amount) }}</strong></div>
+    <div><span>ร้านค้า / ผู้ขาย</span><strong>{{ item.vendor || '-' }}</strong></div>
+    <div><span>เลขที่เอกสาร</span><strong>{{ item.documentNo || '-' }}</strong></div>
+    <div><span>วิธีชำระ</span><strong>{{ item.paymentMethod || '-' }}</strong></div>
+    <div><span>ผู้บันทึก</span><strong>{{ item.createdBy || '-' }}</strong></div>
+    <div>
+      <span>วันที่บันทึก</span>
+      <strong>{{ item.createdAt ? (item.createdAt.toDate() | thaiDate:'short') : '-' }}</strong>
+    </div>
+    <div class="span-2"><span>หมายเหตุ</span><strong>{{ item.note || '-' }}</strong></div>
+  </section>
+
+  <section class="card">
+    <h2>ใบเสร็จ</h2>
+    @if (item.receiptUrl) {
+      @if (isImage()) {
+        <img class="preview" [src]="item.receiptUrl" alt="ใบเสร็จ" />
+      } @else {
+        <p>ไฟล์ PDF: {{ item.receiptFileName || 'receipt.pdf' }}</p>
+      }
+      <a class="btn btn-primary" [href]="item.receiptUrl" target="_blank" rel="noopener">เปิดไฟล์</a>
+    } @else {
+      <p>ยังไม่มีไฟล์แนบ</p>
+    }
+  </section>
+  }
+}

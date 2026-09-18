@@ -1,0 +1,64 @@
+<div class="overlay" (click)="cancelled.emit()">
+  <section class="dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <h2>เพิ่มพนักงานเข้า Job</h2>
+    <label>
+      ค้นหา
+      <input
+        type="search"
+        placeholder="รหัส, ชื่อ, ชื่อเล่น, ตำแหน่ง"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+      />
+    </label>
+    <label>
+      วันที่เริ่มทำงานใน Job
+      <input type="date" [ngModel]="assignedDate()" (ngModelChange)="assignedDate.set($event)" />
+    </label>
+
+    <div class="table-wrap">
+      @if (availableEmployees().length === 0) {
+        <p class="empty">ไม่มีพนักงานที่สามารถเพิ่มได้</p>
+      } @else {
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>รหัส</th>
+              <th>ชื่อ</th>
+              <th>ชื่อเล่น</th>
+              <th>ตำแหน่ง</th>
+              <th>ประเภท</th>
+              <th>ค่าจ้าง</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (employee of availableEmployees(); track employee.id) {
+              <tr (click)="toggle(employee.id)">
+                <td>
+                  <input
+                    type="checkbox"
+                    [checked]="isSelected(employee.id)"
+                    (click)="$event.stopPropagation(); toggle(employee.id)"
+                  />
+                </td>
+                <td>{{ employee.employeeCode }}</td>
+                <td>{{ fullName(employee) }}</td>
+                <td>{{ employee.nickname || '-' }}</td>
+                <td>{{ employee.position }}</td>
+                <td>{{ typeLabels[employee.employmentType] }}</td>
+                <td>{{ wage(employee) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn btn-ghost" (click)="cancelled.emit()">ยกเลิก</button>
+      <button type="button" class="btn btn-primary" [disabled]="selectedIds().length === 0" (click)="submit()">
+        เพิ่มพนักงาน {{ selectedIds().length }} คน
+      </button>
+    </div>
+  </section>
+</div>

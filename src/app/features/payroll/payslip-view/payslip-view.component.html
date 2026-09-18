@@ -1,0 +1,65 @@
+@if (loading()) {
+  <app-loading-state />
+} @else if (!payroll() || !employee()) {
+  <app-empty-state title="ไม่พบสลิป" message="ไม่มีข้อมูล Payroll สำหรับสลิปนี้" />
+} @else {
+  @if (payroll(); as item) {
+    @if (employee(); as employee) {
+      <div class="no-print actions">
+        <a class="btn btn-ghost" [routerLink]="['/payroll', item.id]">กลับ</a>
+        <button type="button" class="btn btn-primary" (click)="print()">พิมพ์</button>
+      </div>
+
+      <article class="payslip">
+        <header>
+          @if (companySettings.settings().logoUrl) {
+            <img [src]="companySettings.settings().logoUrl" alt="" class="logo" />
+          }
+          <div>
+            <h1>{{ companySettings.settings().companyName }}</h1>
+            <p>{{ companySettings.settings().address || '' }}</p>
+            <p>
+              @if (companySettings.settings().phone) {
+                โทร {{ companySettings.settings().phone }}
+              }
+              @if (companySettings.settings().taxId) {
+                · เลขผู้เสียภาษี {{ companySettings.settings().taxId }}
+              }
+            </p>
+          </div>
+        </header>
+        <h2>สลิปเงินเดือน / ค่าแรง</h2>
+        <p class="period">งวด {{ period(item) }}</p>
+
+        <section class="meta">
+          <div><span>รหัส</span><strong>{{ employee.employeeCode }}</strong></div>
+          <div><span>ชื่อ-นามสกุล</span><strong>{{ employee.firstName }} {{ employee.lastName }}</strong></div>
+          <div><span>ตำแหน่ง</span><strong>{{ employee.position }}</strong></div>
+          <div><span>ประเภทการจ้าง</span><strong>{{ typeLabels[item.employmentTypeSnapshot] }}</strong></div>
+        </section>
+
+        <section class="cols">
+          <div>
+            <h3>รายได้</h3>
+            <div class="line"><span>เงินเดือน/ค่าแรง</span><strong>{{ amount(item.basePay) }}</strong></div>
+            <div class="line"><span>OT</span><strong>{{ amount(item.overtimePay) }}</strong></div>
+            @for (row of incomes(); track row.id) {
+              <div class="line"><span>{{ row.category }}</span><strong>{{ amount(row.amount) }}</strong></div>
+            }
+            <div class="line total"><span>รวมรายได้</span><strong>{{ amount(item.totalIncome) }}</strong></div>
+          </div>
+          <div>
+            <h3>รายการหัก</h3>
+            <div class="line"><span>เงินเบิกล่วงหน้า</span><strong>{{ amount(item.advanceDeduction) }}</strong></div>
+            @for (row of deductions(); track row.id) {
+              <div class="line"><span>{{ row.category }}</span><strong>{{ amount(row.amount) }}</strong></div>
+            }
+            <div class="line total"><span>รวมรายการหัก</span><strong>{{ amount(item.totalDeduction) }}</strong></div>
+          </div>
+        </section>
+
+        <p class="net">ยอดรับสุทธิ {{ amount(item.netPay) }} บาท</p>
+      </article>
+    }
+  }
+}

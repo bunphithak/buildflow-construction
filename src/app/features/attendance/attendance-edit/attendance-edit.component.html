@@ -1,0 +1,44 @@
+<app-page-header title="แก้ไขการลงเวลา" subtitle="แก้ไขรายการโดยคง Rate Snapshot เดิม" />
+
+@if (loading()) {
+  <app-loading-state />
+} @else {
+  <form class="edit-form" [formGroup]="form" (ngSubmit)="submit()">
+    <p class="hint">{{ snapshotLabel() }}</p>
+    <section class="card">
+      <div class="grid">
+        <label>
+          Job
+          <select formControlName="jobId">
+            @for (job of jobs(); track job.id) {
+              <option [value]="job.id">{{ job.jobCode }} - {{ job.jobName }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          วันที่
+          <input type="date" formControlName="workDate" />
+        </label>
+        <label>
+          สถานะ
+          <select formControlName="status">
+            @for (status of statuses; track status) {
+              <option [value]="status">{{ statusLabels[status] }}</option>
+            }
+          </select>
+        </label>
+        <label>เวลาเข้า <input type="time" formControlName="clockIn" /></label>
+        <label>เวลาออก <input type="time" formControlName="clockOut" /></label>
+        <label>พัก (นาที) <input type="number" min="0" formControlName="breakMinutes" /></label>
+        <label>OT (ชั่วโมง) <input type="number" min="0" step="0.5" formControlName="overtimeHours" /></label>
+        <label class="span-2">หมายเหตุ <textarea rows="3" formControlName="note"></textarea></label>
+      </div>
+    </section>
+    <div class="actions">
+      <a routerLink="/attendance" class="btn btn-ghost">ยกเลิก</a>
+      <button type="submit" class="btn btn-primary" [disabled]="saving()">
+        {{ saving() ? 'กำลังบันทึก...' : 'บันทึก' }}
+      </button>
+    </div>
+  </form>
+}

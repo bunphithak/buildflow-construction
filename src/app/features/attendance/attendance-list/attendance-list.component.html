@@ -1,0 +1,97 @@
+<app-page-header title="ลงเวลาทำงาน" subtitle="ค้นหา แก้ไข และดูสรุปการลงเวลา">
+  @if (canManage()) {
+    <a routerLink="/attendance/daily" class="btn btn-primary">+ ลงเวลารายวัน</a>
+  }
+</app-page-header>
+
+<section class="card filters">
+  <label>วันที่เริ่ม <input type="date" [ngModel]="startDate()" (ngModelChange)="startDate.set($event)" /></label>
+  <label>วันที่สิ้นสุด <input type="date" [ngModel]="endDate()" (ngModelChange)="endDate.set($event)" /></label>
+  <label>
+    Job
+    <select [ngModel]="jobId()" (ngModelChange)="jobId.set($event)">
+      <option value="">ทั้งหมด</option>
+      @for (job of jobs(); track job.id) {
+        <option [value]="job.id">{{ job.jobCode }} - {{ job.jobName }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    พนักงาน
+    <select [ngModel]="employeeId()" (ngModelChange)="employeeId.set($event)">
+      <option value="">ทั้งหมด</option>
+      @for (employee of employees(); track employee.id) {
+        <option [value]="employee.id">{{ employee.employeeCode }} {{ employee.firstName }} {{ employee.lastName }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    สถานะ
+    <select [ngModel]="status()" (ngModelChange)="onStatusFilter($event)">
+      <option value="">ทั้งหมด</option>
+      @for (item of statuses; track item) {
+        <option [value]="item">{{ statusLabels[item] }}</option>
+      }
+    </select>
+  </label>
+  <button type="button" class="btn btn-primary" (click)="search()">ค้นหา</button>
+</section>
+
+<section class="stats">
+  <article class="card"><span>มาทำงาน</span><strong>{{ summary().present }}</strong></article>
+  <article class="card"><span>ขาด</span><strong>{{ summary().absent }}</strong></article>
+  <article class="card"><span>ลา</span><strong>{{ summary().leave }}</strong></article>
+  <article class="card"><span>ครึ่งวัน</span><strong>{{ summary().halfDay }}</strong></article>
+  <article class="card"><span>OT รวม</span><strong>{{ summary().overtime }}</strong></article>
+  <article class="card"><span>ค่าแรงรวม</span><strong>{{ money(summary().labor) }}</strong></article>
+</section>
+
+@if (loading()) {
+  <app-loading-state />
+} @else if (filtered().length === 0) {
+  <app-empty-state title="ไม่พบรายการลงเวลา" message="ลองปรับช่วงวันที่ หรือลงเวลารายวัน" />
+} @else {
+  <section class="card table-card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>วันที่</th>
+            <th>พนักงาน</th>
+            <th>Job</th>
+            <th>สถานะ</th>
+            <th>เข้า</th>
+            <th>ออก</th>
+            <th>ชั่วโมง</th>
+            <th>OT</th>
+            <th>ค่าแรง</th>
+            <th>จัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of filtered(); track item.id) {
+            <tr>
+              <td>{{ item.workDate.toDate() | thaiDate:'short' }}</td>
+              <td>{{ employeeName(item.employeeId) }}</td>
+              <td>{{ jobName(item.jobId) }}</td>
+              <td><app-status-badge kind="attendance" [status]="item.status" /></td>
+              <td>{{ times(item).clockIn }}</td>
+              <td>{{ times(item).clockOut }}</td>
+              <td>{{ item.normalHours }}</td>
+              <td>{{ item.overtimeHours }}</td>
+              <td>{{ money(item.totalLaborCost) }}</td>
+              <td class="actions">
+                @if (canManage()) {
+                  <a [routerLink]="['/attendance', item.id, 'edit']" class="link">แก้ไข</a>
+                }
+                @if (canDelete()) {
+                  <button type="button" class="link danger" (click)="remove(item)">ลบ</button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+}

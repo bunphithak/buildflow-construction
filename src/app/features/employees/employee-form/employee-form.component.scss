@@ -1,0 +1,110 @@
+.employee-form {
+  display: grid;
+  gap: 1rem;
+  max-width: 920px;
+}
+
+h2 {
+  margin: 0 0 1rem;
+  font-size: 1.05rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem 1rem;
+}
+
+.span-2 {
+  grid-column: span 2;
+}
+
+label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 0.7rem 0.8rem;
+  font: inherit;
+  background: #fff;
+}
+
+small,
+.hint,
+.form-error {
+  color: #b42318;
+  font-weight: 500;
+}
+
+.hint {
+  color: var(--color-muted);
+  margin: 0.45rem 0 0;
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+.form-error {
+  background: #fef3f2;
+  padding: 0.8rem 1rem;
+  border-radius: 0.8rem;
+  margin: 0;
+}
+
+.avatar-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: var(--color-surface-muted);
+  display: grid;
+  place-items: center;
+  color: var(--color-muted);
+  flex-shrink: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.file-btn {
+  display: inline-flex;
+  cursor: pointer;
+  background: var(--color-surface-muted);
+  border-radius: 999px;
+  padding: 0.5rem 0.9rem;
+  font-weight: 700;
+
+  input {
+    display: none;
+  }
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+@media (max-width: 720px) {
+  .grid,
+  .span-2 {
+    grid-template-columns: 1fr;
+    grid-column: auto;
+  }
+}

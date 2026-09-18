@@ -1,0 +1,114 @@
+<app-page-header title="Payroll" [subtitle]="'งวด ' + periodLabel()">
+  <div class="header-actions">
+    <a routerLink="/payroll/advances" class="btn btn-ghost">เงินเบิก</a>
+    <a routerLink="/payroll/generate" class="btn btn-primary">สร้างงวด Payroll</a>
+  </div>
+</app-page-header>
+
+<section class="card filters">
+  <label>
+    เดือน
+    <select [ngModel]="month()" (ngModelChange)="month.set(+$event); reload()">
+      @for (item of months; track item) {
+        <option [ngValue]="item">{{ monthName(item) }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    ปี (ค.ศ.)
+    <select [ngModel]="year()" (ngModelChange)="year.set(+$event); reload()">
+      @for (item of years; track item) {
+        <option [ngValue]="item">{{ item }} (พ.ศ. {{ item + 543 }})</option>
+      }
+    </select>
+  </label>
+</section>
+
+<section class="stats">
+  <article class="card"><span>พนักงาน</span><strong>{{ summary().count }} คน</strong></article>
+  <article class="card"><span>ค่าแรง/เงินเดือน</span><strong>{{ money(summary().base) }}</strong></article>
+  <article class="card"><span>OT</span><strong>{{ money(summary().ot) }}</strong></article>
+  <article class="card"><span>เงินเพิ่ม</span><strong>{{ money(summary().extra) }}</strong></article>
+  <article class="card"><span>รายการหัก</span><strong>{{ money(summary().deduction) }}</strong></article>
+  <article class="card"><span>ยอดสุทธิ</span><strong>{{ money(summary().net) }}</strong></article>
+</section>
+
+@if (selected().size > 0) {
+  <div class="bulk no-print">
+    <button type="button" class="btn btn-ghost" (click)="bulkRecalculate()">คำนวณ</button>
+    <button type="button" class="btn btn-primary" (click)="bulkApprove()">อนุมัติ</button>
+  </div>
+}
+
+@if (loading()) {
+  <app-loading-state />
+} @else if (payrolls().length === 0) {
+  <app-empty-state title="ยังไม่มี Payroll ในงวดนี้" message="กดสร้างงวด Payroll จากพนักงานที่ใช้งานอยู่" />
+} @else {
+  <section class="card table-card desktop-table">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>
+              <input type="checkbox" (change)="onCheckAll($event)" />
+            </th>
+            <th>รหัส</th>
+            <th>พนักงาน</th>
+            <th>ช่วงตัดยอด</th>
+            <th>ประเภท</th>
+            <th>วันทำงาน</th>
+            <th>OT</th>
+            <th>รายได้</th>
+            <th>หัก</th>
+            <th>สุทธิ</th>
+            <th>สถานะ</th>
+            <th>จัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of payrolls(); track item.id) {
+            <tr>
+              <td><input type="checkbox" [checked]="isChecked(item.id)" (change)="onCheck(item.id, $event)" /></td>
+              <td>{{ employeeCode(item.employeeId) }}</td>
+              <td>{{ employeeName(item.employeeId) }}</td>
+              <td>{{ periodRange(item) }}</td>
+              <td>{{ typeLabels[item.employmentTypeSnapshot] }}</td>
+              <td>{{ item.totalWorkDays }} (+{{ item.totalHalfDays }} ครึ่งวัน)</td>
+              <td>{{ item.totalOvertimeHours }}</td>
+              <td>{{ money(item.totalIncome) }}</td>
+              <td>{{ money(item.totalDeduction) }}</td>
+              <td>{{ money(item.netPay) }}</td>
+              <td><app-status-badge kind="payroll" [status]="item.status" /></td>
+              <td class="actions">
+                <a class="link" [routerLink]="['/payroll', item.id]">ดู</a>
+                <a class="link" [routerLink]="['/payroll', item.id, 'payslip']">สลิป</a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mobile-cards">
+    @for (item of payrolls(); track item.id) {
+      <article class="card mobile-card">
+        <label class="check">
+          <input type="checkbox" [checked]="isChecked(item.id)" (change)="onCheck(item.id, $event)" />
+          <strong>{{ employeeName(item.employeeId) }}</strong>
+        </label>
+        <p>{{ periodRange(item) }}</p>
+        <p>{{ item.totalWorkDays }} วัน · OT {{ item.totalOvertimeHours }} ชม.</p>
+        <div class="row"><span>รายได้</span><strong>{{ amount(item.totalIncome) }}</strong></div>
+        <div class="row"><span>หัก</span><strong>{{ amount(item.totalDeduction) }}</strong></div>
+        <div class="row"><span>สุทธิ</span><strong>{{ amount(item.netPay) }}</strong></div>
+        <app-status-badge kind="payroll" [status]="item.status" />
+        <div class="actions">
+          <a class="link" [routerLink]="['/payroll', item.id]">ดู</a>
+          <a class="link" [routerLink]="['/payroll', item.id, 'payslip']">สลิป</a>
+        </div>
+      </article>
+    }
+  </section>
+}
