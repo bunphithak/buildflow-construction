@@ -49,10 +49,7 @@ export class DashboardService {
     if (cached && cached.expires > Date.now()) {
       return cached.value;
     }
-    const value =
-      role === 'EMPLOYEE'
-        ? await this.employeeSummary(range, jobId)
-        : await this.fullSummary(range, jobId);
+    const value = await this.fullSummary(range, jobId);
     this.cache.set(key, { value, expires: Date.now() + 30_000 });
     return value;
   }
@@ -125,36 +122,6 @@ export class DashboardService {
       monthlyProfit: monthly.profit,
       expenseByCategory: this.expenseCategorySeries(expenses),
       laborByJob: this.laborByJobSeries(attendances, jobs),
-    };
-  }
-
-  private async employeeSummary(range: DateRange, jobId?: string): Promise<DashboardSummary> {
-    const empty = this.emptySeries();
-    const employeeId = this.authService.currentUser()?.employeeId;
-    const rows = employeeId
-      ? await this.attendanceService.getAttendancesByEmployeeAndDateRange(employeeId, range.start, range.end)
-      : [];
-    const filtered = jobId ? rows.filter((item) => item.jobId === jobId) : rows;
-    const counts = this.countStatuses(filtered);
-    return {
-      employeeCount: 1,
-      presentToday: counts.present,
-      absentToday: counts.absent,
-      openJobs: 0,
-      completedJobs: 0,
-      laborCost: 0,
-      expenseCost: 0,
-      payrollPaid: 0,
-      attendance: counts,
-      topProfitJobs: [],
-      topSpendJobs: [],
-      overBudgetJobs: [],
-      monthlyLabor: empty,
-      monthlyExpense: empty,
-      monthlyTotalCost: empty,
-      monthlyProfit: empty,
-      expenseByCategory: empty,
-      laborByJob: empty,
     };
   }
 

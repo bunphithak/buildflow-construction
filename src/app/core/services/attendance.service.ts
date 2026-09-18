@@ -266,8 +266,8 @@ export class AttendanceService {
       throw new Error('เงินเดือนต้องไม่ติดลบ');
     }
 
-    const sameJob = (await this.getAttendancesByJobAndDate(data.jobId, data.workDate)).find(
-      (item) => item.employeeId === data.employeeId && item.id !== excludeId,
+    const sameJob = (await this.getAttendancesByEmployeeAndDate(data.employeeId, data.workDate)).find(
+      (item) => item.jobId === data.jobId && item.id !== excludeId,
     );
     if (sameJob) {
       throw new Error('พนักงานมีรายการลงเวลาใน Job นี้แล้วสำหรับวันนี้');

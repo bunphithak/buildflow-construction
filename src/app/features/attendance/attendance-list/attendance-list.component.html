@@ -1,6 +1,8 @@
 <app-page-header title="ลงเวลาทำงาน" subtitle="ค้นหา แก้ไข และดูสรุปการลงเวลา">
-  @if (canManage()) {
+  @if (isSuperAdmin()) {
     <a routerLink="/attendance/daily" class="btn btn-primary">+ ลงเวลารายวัน</a>
+  } @else {
+    <a routerLink="/attendance/today" class="btn btn-primary">+ ลงเวลาวันนี้</a>
   }
 </app-page-header>
 
@@ -43,7 +45,9 @@
   <article class="card"><span>ลา</span><strong>{{ summary().leave }}</strong></article>
   <article class="card"><span>ครึ่งวัน</span><strong>{{ summary().halfDay }}</strong></article>
   <article class="card"><span>OT รวม</span><strong>{{ summary().overtime }}</strong></article>
-  <article class="card"><span>ค่าแรงรวม</span><strong>{{ money(summary().labor) }}</strong></article>
+  @if (canManage()) {
+    <article class="card"><span>ค่าแรงรวม</span><strong>{{ money(summary().labor) }}</strong></article>
+  }
 </section>
 
 @if (loading()) {
@@ -64,7 +68,9 @@
             <th>ออก</th>
             <th>ชั่วโมง</th>
             <th>OT</th>
-            <th>ค่าแรง</th>
+            @if (canManage()) {
+              <th>ค่าแรง</th>
+            }
             <th>จัดการ</th>
           </tr>
         </thead>
@@ -79,7 +85,9 @@
               <td>{{ times(item).clockOut }}</td>
               <td>{{ item.normalHours }}</td>
               <td>{{ item.overtimeHours }}</td>
-              <td>{{ money(item.totalLaborCost) }}</td>
+              @if (canManage()) {
+                <td>{{ money(item.totalLaborCost) }}</td>
+              }
               <td class="actions">
                 @if (canManage()) {
                   <a [routerLink]="['/attendance', item.id, 'edit']" class="link">แก้ไข</a>

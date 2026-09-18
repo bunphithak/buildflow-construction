@@ -5,7 +5,7 @@ export const jobRoutes: Routes = [
   {
     path: '',
     canActivate: [roleGuard],
-    data: { roles: ['ADMIN', 'MANAGER'] },
+    data: { roles: ['ADMIN'] },
     loadComponent: () =>
       import('./job-list/job-list.component').then((m) => m.JobListComponent),
   },
@@ -19,7 +19,7 @@ export const jobRoutes: Routes = [
   {
     path: ':id',
     canActivate: [roleGuard],
-    data: { roles: ['ADMIN', 'MANAGER'] },
+    data: { roles: ['ADMIN'] },
     loadComponent: () =>
       import('./job-detail/job-detail.component').then((m) => m.JobDetailComponent),
   },

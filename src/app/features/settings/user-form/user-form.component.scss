@@ -1,0 +1,62 @@
+.user-form {
+  display: grid;
+  gap: 1rem;
+  max-width: 760px;
+}
+
+h2 {
+  margin: 0 0 1rem;
+  font-size: 1.05rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem 1rem;
+}
+
+label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+input,
+select {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 0.7rem 0.8rem;
+  font: inherit;
+  background: #fff;
+}
+
+small,
+.form-error {
+  color: #b42318;
+  font-weight: 500;
+}
+
+.hint {
+  color: var(--color-muted);
+  font-weight: 400;
+  margin: 0.75rem 0 0.35rem;
+}
+
+.menus {
+  margin: 0 0 1rem;
+  padding-left: 1.2rem;
+  color: var(--color-text);
+}
+
+.actions {
+  display: flex;
+  gap: 0.7rem;
+}
+
+@media (max-width: 720px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

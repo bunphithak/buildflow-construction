@@ -13,6 +13,7 @@
         <a
           [routerLink]="item.path"
           routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: item.exact === true }"
           (click)="closeSidebar()"
         >
           <span class="icon">{{ item.icon }}</span>

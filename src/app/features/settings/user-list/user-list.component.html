@@ -1,0 +1,73 @@
+<app-page-header title="ผู้ใช้และสิทธิ์" subtitle="สร้างบัญชี กำหนดบทบาท และเมนูตามสิทธิ์">
+  <a routerLink="/settings/users/new" class="btn btn-primary">+ สร้างผู้ใช้</a>
+</app-page-header>
+
+<section class="stats">
+  <article class="card"><span>ผู้ใช้ทั้งหมด</span><strong>{{ totalCount() }}</strong></article>
+  <article class="card"><span>ผู้ดูแลระบบ</span><strong>{{ adminCount() }}</strong></article>
+  <article class="card"><span>ผู้จัดการ</span><strong>{{ managerCount() }}</strong></article>
+  <article class="card"><span>ใช้งานอยู่</span><strong>{{ activeCount() }}</strong></article>
+</section>
+
+<section class="card filters">
+  <label>
+    ค้นหา
+    <input type="search" placeholder="ชื่อ หรืออีเมล" [ngModel]="search()" (ngModelChange)="search.set($event)" />
+  </label>
+  <label>
+    บทบาท
+    <select [ngModel]="roleFilter()" (ngModelChange)="roleFilter.set($event)">
+      <option value="">ทั้งหมด</option>
+      <option value="ADMIN">ผู้ดูแลระบบ</option>
+      <option value="MANAGER">ผู้จัดการ</option>
+    </select>
+  </label>
+  <label>
+    สถานะ
+    <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+      <option value="">ทั้งหมด</option>
+      <option value="ACTIVE">ใช้งาน</option>
+      <option value="INACTIVE">ปิดใช้งาน</option>
+    </select>
+  </label>
+</section>
+
+@if (loading()) {
+  <app-loading-state />
+} @else if (error()) {
+  <app-empty-state title="โหลดข้อมูลไม่สำเร็จ" [message]="error()!" />
+} @else if (filtered().length === 0) {
+  <app-empty-state title="ไม่พบผู้ใช้" message="สร้างผู้ใช้ใหม่ หรือปรับคำค้นหา" />
+} @else {
+  <section class="card table-card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ชื่อที่แสดง</th>
+            <th>อีเมล</th>
+            <th>บทบาท</th>
+            <th>พนักงานที่ผูก</th>
+            <th>สถานะ</th>
+            <th>จัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of filtered(); track user.uid) {
+            <tr>
+              <td>{{ user.displayName }}</td>
+              <td>{{ user.email }}</td>
+              <td>{{ roleLabels[user.role] }}</td>
+              <td>{{ employeeName(user.employeeId) }}</td>
+              <td>{{ user.isActive ? 'ใช้งาน' : 'ปิดใช้งาน' }}</td>
+              <td class="actions">
+                <a [routerLink]="['/settings/users', user.uid, 'edit']" class="link">แก้ไข</a>
+                <button type="button" class="link" (click)="resetPassword(user.email)">รีเซ็ตรหัสผ่าน</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+}

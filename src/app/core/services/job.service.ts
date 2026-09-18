@@ -16,8 +16,10 @@ import {
   where,
 } from '@angular/fire/firestore';
 import { DocumentData } from 'firebase/firestore';
-import { map } from 'rxjs';
+import { map, of, switchMap } from 'rxjs';
+import { toObservable } from '@angular/core/rxjs-interop';
 import { COLLECTIONS } from '../constants/collections';
+import { AuthService } from '../auth/auth.service';
 import { Job, JobStatus, JobWriteData } from '../models';
 import { omitUndefined, toDate } from '../utils/form.util';
 
@@ -28,6 +30,7 @@ const JOB_CODE_PATTERN = /^JOB-(\d{4})-(\d+)$/i;
 })
 export class JobService {
   private readonly firestore = inject(Firestore);
+  private readonly authService = inject(AuthService);
   private readonly jobsRef = collection(this.firestore, COLLECTIONS.jobs);
 
   readonly jobs = signal<Job[]>([]);
@@ -47,8 +50,17 @@ export class JobService {
   );
 
   constructor() {
-    collectionData(this.jobsRef, { idField: 'id' })
-      .pipe(map((rows) => rows.map((row) => this.mapJob(row))))
+    toObservable(this.authService.currentUser)
+      .pipe(
+        switchMap((user) => {
+          if (!user) {
+            return of([] as Job[]);
+          }
+          return collectionData(this.jobsRef, { idField: 'id' }).pipe(
+            map((rows) => rows.map((row) => this.mapJob(row))),
+          );
+        }),
+      )
       .subscribe({
         next: (jobs) => {
           this.jobs.set(jobs);
@@ -78,6 +90,13 @@ export class JobService {
       return null;
     }
     return this.mapJob({ id: snapshot.id, ...snapshot.data() });
+  }
+
+  async getJobsAssignedToEmployee(employeeId: string): Promise<Job[]> {
+    const snapshot = await getDocs(
+      query(this.jobsRef, where('assignedEmployeeIds', 'array-contains', employeeId)),
+    );
+    return snapshot.docs.map((item) => this.mapJob({ id: item.id, ...item.data() }));
   }
 
   async generateNextJobCode(date = new Date()): Promise<string> {

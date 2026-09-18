@@ -17,7 +17,7 @@ export const roleGuard: CanActivateFn = (route) => {
       if (allowedRoles.length === 0 || authService.hasRole(allowedRoles)) {
         return true;
       }
-      return router.createUrlTree(['/dashboard']);
+      return router.createUrlTree([authService.homePath()]);
     }),
   );
 };

@@ -37,7 +37,7 @@ export class LoginComponent {
     try {
       const { email, password } = this.form.getRawValue();
       await this.authService.login(email, password);
-      await this.router.navigateByUrl('/dashboard');
+      await this.router.navigateByUrl(this.authService.homePath());
     } catch (error) {
       this.errorMessage.set(error instanceof Error ? error.message : 'เข้าสู่ระบบไม่สำเร็จ');
     } finally {

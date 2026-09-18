@@ -15,8 +15,10 @@ import {
   writeBatch,
 } from '@angular/fire/firestore';
 import { DocumentData } from 'firebase/firestore';
-import { map } from 'rxjs';
+import { map, of, switchMap } from 'rxjs';
+import { toObservable } from '@angular/core/rxjs-interop';
 import { COLLECTIONS } from '../constants/collections';
+import { AuthService } from '../auth/auth.service';
 import { JobAssignmentStatus, JobEmployee } from '../models';
 import { canAssignEmployeesToJob } from '../utils/job-status.util';
 import { JobService } from './job.service';
@@ -27,6 +29,7 @@ import { JobService } from './job.service';
 export class JobEmployeeService {
   private readonly firestore = inject(Firestore);
   private readonly jobService = inject(JobService);
+  private readonly authService = inject(AuthService);
   private readonly assignmentsRef = collection(this.firestore, COLLECTIONS.jobEmployees);
 
   readonly assignments = signal<JobEmployee[]>([]);
@@ -35,8 +38,17 @@ export class JobEmployeeService {
   readonly loaded = signal(false);
 
   constructor() {
-    collectionData(this.assignmentsRef, { idField: 'id' })
-      .pipe(map((rows) => rows.map((row) => this.mapAssignment(row))))
+    toObservable(this.authService.currentUser)
+      .pipe(
+        switchMap((user) => {
+          if (!user) {
+            return of([] as JobEmployee[]);
+          }
+          return collectionData(this.assignmentsRef, { idField: 'id' }).pipe(
+            map((rows) => rows.map((row) => this.mapAssignment(row))),
+          );
+        }),
+      )
       .subscribe({
         next: (assignments) => {
           this.assignments.set(assignments);
@@ -162,6 +174,15 @@ export class JobEmployeeService {
       ),
     );
     return snapshot.docs.map((item) => this.mapAssignment({ id: item.id, ...item.data() }));
+  }
+
+  async queryActiveByEmployee(employeeId: string): Promise<JobEmployee[]> {
+    const snapshot = await getDocs(
+      query(this.assignmentsRef, where('employeeId', '==', employeeId)),
+    );
+    return snapshot.docs
+      .map((item) => this.mapAssignment({ id: item.id, ...item.data() }))
+      .filter((item) => item.status === 'ACTIVE');
   }
 
   private mapAssignment(row: DocumentData): JobEmployee {

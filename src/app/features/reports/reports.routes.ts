@@ -5,14 +5,14 @@ export const reportRoutes: Routes = [
   {
     path: '',
     canActivate: [roleGuard],
-    data: { roles: ['ADMIN', 'MANAGER'] },
+    data: { roles: ['ADMIN'] },
     loadComponent: () =>
       import('./reports-home/reports-home.component').then((m) => m.ReportsHomeComponent),
   },
   {
     path: 'attendance',
     canActivate: [roleGuard],
-    data: { roles: ['ADMIN', 'MANAGER'] },
+    data: { roles: ['ADMIN'] },
     loadComponent: () =>
       import('./attendance-report/attendance-report.component').then(
         (m) => m.AttendanceReportComponent,
@@ -21,21 +21,21 @@ export const reportRoutes: Routes = [
   {
     path: 'labor',
     canActivate: [roleGuard],
-    data: { roles: ['ADMIN', 'MANAGER'] },
+    data: { roles: ['ADMIN'] },
     loadComponent: () =>
       import('./labor-report/labor-report.component').then((m) => m.LaborReportComponent),
   },
   {
     path: 'expenses',
     canActivate: [roleGuard],
-    data: { roles: ['ADMIN', 'MANAGER'] },
+    data: { roles: ['ADMIN'] },
     loadComponent: () =>
       import('./expense-report/expense-report.component').then((m) => m.ExpenseReportComponent),
   },
   {
     path: 'job-cost',
     canActivate: [roleGuard],
-    data: { roles: ['ADMIN', 'MANAGER'] },
+    data: { roles: ['ADMIN'] },
     loadComponent: () =>
       import('./job-cost-report/job-cost-report.component').then((m) => m.JobCostReportComponent),
   },
@@ -49,7 +49,7 @@ export const reportRoutes: Routes = [
   {
     path: 'executive',
     canActivate: [roleGuard],
-    data: { roles: ['ADMIN', 'MANAGER'] },
+    data: { roles: ['ADMIN'] },
     loadComponent: () =>
       import('./executive-report/executive-report.component').then(
         (m) => m.ExecutiveReportComponent,

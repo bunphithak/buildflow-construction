@@ -47,14 +47,6 @@ export class PayslipViewComponent implements OnInit {
         await this.router.navigateByUrl('/payslips');
         return;
       }
-      if (
-        this.authService.hasRole(['EMPLOYEE']) &&
-        !this.authService.hasRole(['ADMIN']) &&
-        this.authService.currentUser()?.employeeId !== payroll.employeeId
-      ) {
-        await this.router.navigateByUrl('/payslips');
-        return;
-      }
       this.payroll.set(payroll);
       this.employee.set(await this.employeeService.getEmployeeById(payroll.employeeId));
       this.adjustments.set(await this.payrollService.getAdjustments(id));

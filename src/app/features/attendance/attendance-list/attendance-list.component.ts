@@ -52,6 +52,7 @@ export class AttendanceListComponent implements OnInit {
   readonly status = signal<AttendanceStatus | ''>('');
   readonly statusLabels = ATTENDANCE_STATUS_LABELS;
   readonly statuses = ATTENDANCE_STATUSES;
+  readonly isSuperAdmin = computed(() => this.authService.hasRole(['ADMIN']));
   readonly canManage = computed(() => this.authService.hasRole(['ADMIN', 'MANAGER']));
   readonly canDelete = computed(() => this.authService.hasRole(['ADMIN']));
 
@@ -90,26 +91,11 @@ export class AttendanceListComponent implements OnInit {
   async search(): Promise<void> {
     this.loading.set(true);
     try {
-      const current = this.authService.currentUser();
-      if (current?.role === 'EMPLOYEE' && current.employeeId) {
-        const rows = await this.attendanceService.getAttendancesByEmployee(current.employeeId);
-        const start = new Date(this.startDate()).getTime();
-        const end = new Date(this.endDate()).getTime() + 24 * 60 * 60 * 1000;
-        this.items.set(
-          rows
-            .filter((item) => {
-              const time = item.workDate.toDate().getTime();
-              return time >= start && time < end;
-            })
-            .sort((a, b) => b.workDate.toMillis() - a.workDate.toMillis()),
-        );
-      } else {
-        const rows = await this.attendanceService.getAttendancesByDateRange(
-          new Date(this.startDate()),
-          new Date(this.endDate()),
-        );
-        this.items.set(rows.sort((a, b) => b.workDate.toMillis() - a.workDate.toMillis()));
-      }
+      const rows = await this.attendanceService.getAttendancesByDateRange(
+        new Date(this.startDate()),
+        new Date(this.endDate()),
+      );
+      this.items.set(rows.sort((a, b) => b.workDate.toMillis() - a.workDate.toMillis()));
     } catch (error) {
       console.error(error);
       this.toast.error('ไม่สามารถโหลดข้อมูลลงเวลาได้');

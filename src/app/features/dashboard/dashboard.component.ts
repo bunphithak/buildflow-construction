@@ -5,6 +5,7 @@ import { DecimalPipe } from '@angular/common';
 import { AuthService } from '../../core/auth/auth.service';
 import { DashboardSummary } from '../../core/models';
 import { JobService } from '../../core/services/job.service';
+import { DashboardService } from '../../core/services/dashboard.service';
 import { formatBaht, toDateInputValue } from '../../core/utils/form.util';
 import {
   DashboardPreset,

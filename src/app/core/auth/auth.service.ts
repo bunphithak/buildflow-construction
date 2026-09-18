@@ -12,7 +12,7 @@ import { FirebaseError } from 'firebase/app';
 import { filter, map, of, switchMap, take } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { COLLECTIONS } from '../constants/collections';
-import { AppUser, UserRole } from '../models';
+import { AppUser, UserRole, normalizeUserRole } from '../models';
 
 @Injectable({
   providedIn: 'root',
@@ -96,6 +96,10 @@ export class AuthService {
     return !!role && roles.includes(role);
   }
 
+  homePath(): string {
+    return this.hasRole(['MANAGER']) ? '/attendance/today' : '/dashboard';
+  }
+
   private async bootstrapFirstAdmin(user: User): Promise<AppUser | null> {
     if (!user.email || !environment.firstAdminEmails.includes(user.email)) {
       return null;
@@ -126,8 +130,8 @@ export class AuthService {
       return null;
     }
 
-    const data = profile as Partial<AppUser>;
-    if (!data.role || !data.email) {
+    const data = profile as Partial<AppUser> & { role?: unknown };
+    if (!data.email || data.role == null) {
       return null;
     }
 
@@ -135,7 +139,7 @@ export class AuthService {
       uid: firebaseUser.uid,
       email: data.email,
       displayName: data.displayName || firebaseUser.displayName || firebaseUser.email || '',
-      role: data.role,
+      role: normalizeUserRole(data.role),
       employeeId: data.employeeId,
       photoUrl: data.photoUrl,
       isActive: data.isActive !== false,

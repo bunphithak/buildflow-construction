@@ -25,6 +25,8 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       {
         path: 'dashboard',
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] },
         loadComponent: () =>
           import('./features/dashboard/dashboard.component').then(
             (m) => m.DashboardComponent,
@@ -40,14 +42,14 @@ export const routes: Routes = [
       {
         path: 'attendance',
         canActivate: [roleGuard],
-        data: { roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
+        data: { roles: ['ADMIN', 'MANAGER'] },
         loadChildren: () =>
           import('./features/attendance/attendance.routes').then((m) => m.attendanceRoutes),
       },
       {
         path: 'jobs',
         canActivate: [roleGuard],
-        data: { roles: ['ADMIN', 'MANAGER'] },
+        data: { roles: ['ADMIN'] },
         loadChildren: () =>
           import('./features/jobs/jobs.routes').then((m) => m.jobRoutes),
       },
@@ -66,7 +68,7 @@ export const routes: Routes = [
       {
         path: 'payslips',
         canActivate: [roleGuard],
-        data: { roles: ['ADMIN', 'EMPLOYEE'] },
+        data: { roles: ['ADMIN'] },
         loadComponent: () =>
           import('./features/payroll/payslip-list/payslip-list.component').then(
             (m) => m.PayslipListComponent,
@@ -75,7 +77,7 @@ export const routes: Routes = [
       {
         path: 'reports',
         canActivate: [roleGuard],
-        data: { roles: ['ADMIN', 'MANAGER'] },
+        data: { roles: ['ADMIN'] },
         loadChildren: () =>
           import('./features/reports/reports.routes').then((m) => m.reportRoutes),
       },

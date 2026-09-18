@@ -146,8 +146,10 @@
     }
   } @else if (activeTab() === 'attendance') {
     <div class="tab-actions">
-      @if (canManage()) {
+      @if (authService.hasRole(['ADMIN'])) {
         <a class="btn btn-primary" [routerLink]="['/attendance/daily']" [queryParams]="{ jobId: job.id }">ลงเวลารายวัน</a>
+      } @else if (authService.hasRole(['MANAGER'])) {
+        <a class="btn btn-primary" [routerLink]="['/attendance/today']" [queryParams]="{ jobId: job.id }">ลงเวลาวันนี้</a>
       }
     </div>
     @if (jobAttendances().length === 0) {

@@ -35,14 +35,14 @@ export const payrollRoutes: Routes = [
   {
     path: ':id/payslip',
     canActivate: [roleGuard],
-    data: { roles: ['ADMIN', 'EMPLOYEE'] },
+    data: { roles: ['ADMIN'] },
     loadComponent: () =>
       import('./payslip-view/payslip-view.component').then((m) => m.PayslipViewComponent),
   },
   {
     path: ':id',
     canActivate: [roleGuard],
-    data: { roles: ['ADMIN', 'EMPLOYEE'] },
+    data: { roles: ['ADMIN'] },
     loadComponent: () =>
       import('./payroll-detail/payroll-detail.component').then((m) => m.PayrollDetailComponent),
   },

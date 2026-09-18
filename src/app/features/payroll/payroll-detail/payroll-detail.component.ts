@@ -343,14 +343,6 @@ export class PayrollDetailComponent implements OnInit {
         await this.router.navigateByUrl('/payroll');
         return;
       }
-      if (
-        this.authService.hasRole(['EMPLOYEE']) &&
-        !this.authService.hasRole(['ADMIN']) &&
-        this.authService.currentUser()?.employeeId !== payroll.employeeId
-      ) {
-        await this.router.navigateByUrl('/payslips');
-        return;
-      }
       const employee = await this.employeeService.getEmployeeById(payroll.employeeId);
       const { start, end } = this.payrollService.payrollDateRange(payroll);
       const [attendances, adjustments, pending] = await Promise.all([

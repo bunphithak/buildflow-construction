@@ -1,0 +1,87 @@
+<app-page-header
+  [title]="isEdit ? 'แก้ไขผู้ใช้' : 'สร้างผู้ใช้'"
+  subtitle="กำหนดอีเมล บทบาท และเมนูที่เข้าถึงได้"
+/>
+
+@if (loading()) {
+  <app-loading-state message="กำลังโหลดข้อมูลผู้ใช้..." />
+} @else {
+  <form class="user-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <section class="card">
+      <h2>บัญชีเข้าสู่ระบบ</h2>
+      <div class="grid">
+        <label>
+          ชื่อที่แสดง *
+          <input type="text" formControlName="displayName" />
+          @if (hasError('displayName', 'required')) {
+            <small>กรุณากรอกชื่อที่แสดง</small>
+          }
+        </label>
+        <label>
+          อีเมล *
+          <input type="email" formControlName="email" placeholder="name@company.com" />
+          @if (hasError('email', 'required') || hasError('email', 'email')) {
+            <small>กรุณากรอกอีเมลให้ถูกต้อง</small>
+          }
+        </label>
+        @if (!isEdit) {
+          <label>
+            รหัสผ่าน *
+            <input type="password" formControlName="password" autocomplete="new-password" />
+            @if (hasError('password', 'required') || hasError('password', 'minlength')) {
+              <small>รหัสผ่านอย่างน้อย 6 ตัวอักษร</small>
+            }
+          </label>
+        }
+        <label>
+          สถานะ
+          <select formControlName="isActive">
+            <option [ngValue]="true">ใช้งาน</option>
+            <option [ngValue]="false">ปิดใช้งาน</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>บทบาทและเมนู</h2>
+      <label>
+        บทบาท *
+        <select formControlName="role">
+          @for (role of roles; track role) {
+            <option [ngValue]="role">{{ roleLabels[role] }}</option>
+          }
+        </select>
+      </label>
+      <p class="hint">ผู้ใช้บทบาทนี้จะเห็นเมนู:</p>
+      <ul class="menus">
+        @for (item of menusForRole(); track item) {
+          <li>{{ item }}</li>
+        }
+      </ul>
+      <label>
+        ผูกกับพนักงาน
+        <select formControlName="employeeId">
+          <option value="">ไม่ผูก</option>
+          @for (employee of employeeOptions(); track employee.id) {
+            <option [value]="employee.id">
+              {{ employee.employeeCode }} {{ employee.firstName }} {{ employee.lastName }}
+            </option>
+          }
+        </select>
+        <span class="hint">ไม่บังคับ ใช้ผูกบัญชีกับข้อมูลพนักงานถ้าต้องการอ้างอิง</span>
+      </label>
+    </section>
+
+    @if (formError(); as message) {
+      <p class="form-error">{{ message }}</p>
+    }
+
+    <div class="actions">
+      <button type="submit" class="btn btn-primary" [disabled]="saving()">
+        {{ saving() ? 'กำลังบันทึก...' : isEdit ? 'บันทึก' : 'สร้างผู้ใช้' }}
+      </button>
+      <a routerLink="/settings/users" class="btn btn-ghost">ยกเลิก</a>
+    </div>
+  </form>
+}

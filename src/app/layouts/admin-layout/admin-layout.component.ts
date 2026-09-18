@@ -12,6 +12,7 @@ interface NavItem {
   path: string;
   icon: string;
   roles: readonly UserRole[];
+  exact?: boolean;
 }
 
 @Component({
@@ -42,15 +43,17 @@ export class AdminLayoutComponent {
   });
 
   private readonly allNavItems: NavItem[] = [
-    { label: 'Dashboard', path: '/dashboard', icon: '▣', roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
+    { label: 'Dashboard', path: '/dashboard', icon: '▣', roles: ['ADMIN'] },
     { label: 'พนักงาน', path: '/employees', icon: '☺', roles: ['ADMIN'] },
-    { label: 'ลงเวลาทำงาน', path: '/attendance', icon: '◷', roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
-    { label: 'งานก่อสร้าง', path: '/jobs', icon: '⌂', roles: ['ADMIN', 'MANAGER'] },
+    { label: 'ลงเวลาทำงาน', path: '/attendance/daily', icon: '◷', roles: ['ADMIN'] },
+    { label: 'ลงเวลาทำงาน', path: '/attendance/today', icon: '◷', roles: ['MANAGER'] },
+    { label: 'งานก่อสร้าง', path: '/jobs', icon: '⌂', roles: ['ADMIN'] },
     { label: 'ค่าใช้จ่าย', path: '/expenses', icon: '฿', roles: ['ADMIN', 'MANAGER'] },
     { label: 'Payroll', path: '/payroll', icon: '▤', roles: ['ADMIN'] },
-    { label: 'สลิปเงินเดือน', path: '/payslips', icon: '✉', roles: ['ADMIN', 'EMPLOYEE'] },
-    { label: 'รายงาน', path: '/reports', icon: '▦', roles: ['ADMIN', 'MANAGER'] },
-    { label: 'ตั้งค่า', path: '/settings', icon: '⚙', roles: ['ADMIN'] },
+    { label: 'สลิปเงินเดือน', path: '/payslips', icon: '✉', roles: ['ADMIN'] },
+    { label: 'รายงาน', path: '/reports', icon: '▦', roles: ['ADMIN'] },
+    { label: 'ผู้ใช้', path: '/settings/users', icon: '☻', roles: ['ADMIN'] },
+    { label: 'ตั้งค่า', path: '/settings', icon: '⚙', roles: ['ADMIN'], exact: true },
   ];
 
   readonly navItems = computed(() =>

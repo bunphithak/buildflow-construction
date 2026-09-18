@@ -1,0 +1,136 @@
+<app-page-header title="ลงเวลาทำงาน" subtitle="เลือก Job แล้วลงเวลาของวันนี้ — เปลี่ยนวันที่ไม่ได้">
+  @if (canViewHistory()) {
+    <a routerLink="/attendance" class="btn btn-ghost">ดูรายการลงเวลา</a>
+  }
+</app-page-header>
+
+<section class="card toolbar">
+  <p class="today">
+    วันที่ทำงาน
+    <strong>{{ workDate | thaiDate }}</strong>
+  </p>
+  <label>
+    Job
+    <select [ngModel]="jobId()" (ngModelChange)="onJobChange($event)">
+      <option value="">เลือก Job</option>
+      @for (job of openJobs(); track job.id) {
+        <option [value]="job.id">{{ jobLabel(job) }}</option>
+      }
+    </select>
+  </label>
+</section>
+
+@if (loaded() && selectedJob(); as job) {
+  <p class="context">วันนี้ · {{ job.jobCode }} {{ job.jobName }}</p>
+}
+
+@if (loaded()) {
+  <section class="card quick">
+    <label class="check">
+      <input type="checkbox" [checked]="allSelected()" (change)="onToggleAll($event)" />
+      เลือกทั้งหมด
+    </label>
+    <div class="bulk">
+      <button type="button" class="btn btn-ghost" (click)="applyStatus('PRESENT')">มาทำงานทั้งหมด</button>
+      <button type="button" class="btn btn-ghost" (click)="applyStatus('ABSENT')">ขาดงาน</button>
+      <button type="button" class="btn btn-ghost" (click)="applyStatus('LEAVE')">ลางาน</button>
+      <button type="button" class="btn btn-ghost" (click)="applyStatus('HOLIDAY')">วันหยุด</button>
+    </div>
+    <div class="defaults">
+      <label>เวลาเข้า <input type="time" [ngModel]="defaultClockIn()" (ngModelChange)="defaultClockIn.set($event)" /></label>
+      <label>เวลาออก <input type="time" [ngModel]="defaultClockOut()" (ngModelChange)="defaultClockOut.set($event)" /></label>
+      <label>พัก <input type="number" min="0" [ngModel]="defaultBreakMinutes()" (ngModelChange)="defaultBreakMinutes.set($event)" /></label>
+      <button type="button" class="btn btn-ghost" (click)="applyDefaultTimes()">ตั้งเวลาให้คนที่เลือก</button>
+    </div>
+  </section>
+}
+
+@if (loading()) {
+  <app-loading-state message="กำลังโหลดพนักงานใน Job..." />
+} @else if (loaded() && rows().length === 0) {
+  <app-empty-state title="ยังไม่มีพนักงานใน Job นี้" message="เพิ่มพนักงานเข้า Job ก่อนลงเวลา" />
+} @else if (loaded()) {
+  <section class="card table-card desktop-only">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>เลือก</th>
+            <th>รหัส</th>
+            <th>ชื่อ</th>
+            <th>ตำแหน่ง</th>
+            <th>สถานะ</th>
+            <th>เข้า</th>
+            <th>ออก</th>
+            <th>พัก</th>
+            <th>OT</th>
+            <th>หมายเหตุ</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.employeeId; let i = $index) {
+            <tr [class.invalid]="!!row.error">
+              <td>
+                <input type="checkbox" [ngModel]="row.selected" (ngModelChange)="updateRow(i, { selected: $event })" />
+              </td>
+              <td>{{ row.employeeCode }}</td>
+              <td>{{ row.fullName }}</td>
+              <td>{{ row.position }}</td>
+              <td>
+                <select [ngModel]="row.status" (ngModelChange)="onStatusChange(i, $event)">
+                  @for (status of statuses; track status) {
+                    <option [value]="status">{{ statusLabels[status] }}</option>
+                  }
+                </select>
+              </td>
+              <td><input type="time" [ngModel]="row.clockIn" (ngModelChange)="updateRow(i, { clockIn: $event })" /></td>
+              <td><input type="time" [ngModel]="row.clockOut" (ngModelChange)="updateRow(i, { clockOut: $event })" /></td>
+              <td><input type="number" min="0" [ngModel]="row.breakMinutes" (ngModelChange)="updateRow(i, { breakMinutes: $event })" /></td>
+              <td><input type="number" min="0" step="0.5" [ngModel]="row.overtimeHours" (ngModelChange)="updateRow(i, { overtimeHours: $event })" /></td>
+              <td>
+                <input type="text" [ngModel]="row.note" (ngModelChange)="updateRow(i, { note: $event })" />
+                @if (row.error) {
+                  <small>{{ row.error }}</small>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mobile-cards">
+    @for (row of rows(); track row.employeeId; let i = $index) {
+      <article class="card employee-card" [class.invalid]="!!row.error">
+        <label class="check">
+          <input type="checkbox" [ngModel]="row.selected" (ngModelChange)="updateRow(i, { selected: $event })" />
+          <strong>{{ row.fullName }}</strong>
+        </label>
+        <p>{{ row.employeeCode }} · {{ row.position }}</p>
+        <label>
+          สถานะ
+          <select [ngModel]="row.status" (ngModelChange)="onStatusChange(i, $event)">
+            @for (status of statuses; track status) {
+              <option [value]="status">{{ statusLabels[status] }}</option>
+            }
+          </select>
+        </label>
+        <div class="times">
+          <label>เข้า <input type="time" [ngModel]="row.clockIn" (ngModelChange)="updateRow(i, { clockIn: $event })" /></label>
+          <label>ออก <input type="time" [ngModel]="row.clockOut" (ngModelChange)="updateRow(i, { clockOut: $event })" /></label>
+          <label>OT <input type="number" min="0" step="0.5" [ngModel]="row.overtimeHours" (ngModelChange)="updateRow(i, { overtimeHours: $event })" /></label>
+        </div>
+        @if (row.error) {
+          <small>{{ row.error }}</small>
+        }
+      </article>
+    }
+  </section>
+
+  <div class="save-bar">
+    <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">
+      {{ saving() ? 'กำลังบันทึก...' : 'บันทึกการลงเวลา ' + selectedCount() + ' คน' }}
+    </button>
+  </div>
+}

@@ -27,4 +27,25 @@ export const settingsRoutes: Routes = [
         (m) => m.ExpenseCategoriesComponent,
       ),
   },
+  {
+    path: 'users',
+    canActivate: [roleGuard],
+    data: { roles: ['ADMIN'] },
+    loadComponent: () =>
+      import('./user-list/user-list.component').then((m) => m.UserListComponent),
+  },
+  {
+    path: 'users/new',
+    canActivate: [roleGuard],
+    data: { roles: ['ADMIN'] },
+    loadComponent: () =>
+      import('./user-form/user-form.component').then((m) => m.UserFormComponent),
+  },
+  {
+    path: 'users/:uid/edit',
+    canActivate: [roleGuard],
+    data: { roles: ['ADMIN'] },
+    loadComponent: () =>
+      import('./user-form/user-form.component').then((m) => m.UserFormComponent),
+  },
 ];
