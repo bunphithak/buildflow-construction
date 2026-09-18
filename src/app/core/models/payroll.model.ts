@@ -81,6 +81,8 @@ export interface Payroll extends Partial<Auditable> {
   netPay: number;
   status: PayrollStatus;
   selectedAdvanceIds: string[];
+  carriedForwardAmount?: number;
+  carriedForwardAdvanceId?: string;
   note?: string;
   calculatedAt?: Timestamp;
   approvedAt?: Timestamp;
@@ -108,6 +110,7 @@ export interface EmployeeAdvance extends Partial<Auditable> {
   description?: string;
   status: AdvanceStatus;
   payrollId?: string;
+  sourcePayrollId?: string;
   deductedAt?: Timestamp;
   note?: string;
   createdBy?: string;

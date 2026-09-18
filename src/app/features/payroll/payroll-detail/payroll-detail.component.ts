@@ -133,6 +133,10 @@ export class PayrollDetailComponent implements OnInit {
     return formatBaht(value);
   }
 
+  absMoney(value: number): string {
+    return formatBaht(Math.abs(value));
+  }
+
   jobName(id: string): string {
     const job = this.jobService.jobs().find((item) => item.id === id);
     return job ? `${job.jobCode} ${job.jobName}` : id;
@@ -225,21 +229,25 @@ export class PayrollDetailComponent implements OnInit {
     if (!payroll || !employee) {
       return;
     }
-    if (this.negative()) {
-      this.toast.error('ยอดหักมากกว่ารายได้ กรุณาตรวจสอบก่อนอนุมัติ');
-      return;
-    }
-    const confirmed = await this.confirmDialog.confirm({
-      title: 'อนุมัติ Payroll',
-      message: `ยืนยันการอนุมัติ Payroll ของ ${this.fullName(employee)} งวด ${this.periodLabel(payroll)}?`,
-      confirmLabel: 'อนุมัติ',
-    });
+    const confirmed = this.negative()
+      ? await this.confirmDialog.confirm({
+          title: 'ยอดสุทธิติดลบ',
+          message: `ยอดสุทธิของ ${this.fullName(employee)} งวด ${this.periodLabel(payroll)} คือ ${this.money(payroll.netPay)} ต้องการอนุมัติและยกยอดติดลบ ${this.money(Math.abs(payroll.netPay))} ไปรอหักรอบถัดไปหรือไม่? งวดนี้จะจ่าย 0 บาท`,
+          confirmLabel: 'อนุมัติและยกยอด',
+        })
+      : await this.confirmDialog.confirm({
+          title: 'อนุมัติ Payroll',
+          message: `ยืนยันการอนุมัติ Payroll ของ ${this.fullName(employee)} งวด ${this.periodLabel(payroll)}?`,
+          confirmLabel: 'อนุมัติ',
+        });
     if (!confirmed) {
       return;
     }
     try {
       await this.payrollService.approve(payroll.id);
-      this.toast.success('อนุมัติ Payroll แล้ว');
+      this.toast.success(
+        this.negative() ? 'อนุมัติแล้ว และยกยอดติดลบไปรอหักรอบถัดไป' : 'อนุมัติ Payroll แล้ว',
+      );
       await this.load(payroll.id);
     } catch (error) {
       this.toast.error(mapPayrollError(error));

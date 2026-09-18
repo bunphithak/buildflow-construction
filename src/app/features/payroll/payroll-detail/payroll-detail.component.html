@@ -13,6 +13,17 @@
         </div>
       </app-page-header>
 
+      @if (negative() && !locked()) {
+        <p class="warning">
+          ยอดสุทธิติดลบ {{ money(item.netPay) }} เมื่ออนุมัติ ระบบจะยกยอด {{ absMoney(item.netPay) }}
+          ไปรอหักรอบถัดไป และงวดนี้จ่าย 0 บาท
+        </p>
+      }
+      @if (item.carriedForwardAmount) {
+        <p class="warning">
+          ยกยอดติดลบ {{ money(item.carriedForwardAmount) }} ไปรอหักรอบถัดไปแล้ว · ยอดจ่ายงวดนี้ 0 บาท
+        </p>
+      }
       @if (attendanceOutOfDate()) {
         <p class="warning">
           ตารางลงเวลาเป็นข้อมูลล่าสุด ({{ liveAttendanceSummary()?.totalWorkDays }} วันเต็ม)
@@ -29,7 +40,7 @@
         <article class="card"><span>รวมรายได้</span><strong>{{ money(item.totalIncome) }}</strong></article>
         <article class="card"><span>เงินเบิก</span><strong>{{ money(item.advanceDeduction) }}</strong></article>
         <article class="card"><span>เงินหัก</span><strong>{{ money(item.otherDeduction) }}</strong></article>
-        <article class="card"><span>ยอดสุทธิ</span><strong>{{ money(item.netPay) }}</strong></article>
+        <article class="card"><span>ยอดสุทธิ</span><strong [class.negative]="item.netPay < 0">{{ money(item.netPay) }}</strong></article>
       </section>
 
       @if (isAdmin()) {

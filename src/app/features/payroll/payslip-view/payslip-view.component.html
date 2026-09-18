@@ -59,6 +59,11 @@
         </section>
 
         <p class="net">ยอดรับสุทธิ {{ amount(item.netPay) }} บาท</p>
+        @if (item.carriedForwardAmount) {
+          <p class="period">
+            ยกยอดติดลบ {{ amount(item.carriedForwardAmount) }} บาท ไปรอหักรอบถัดไป · ยอดจ่ายงวดนี้ 0 บาท
+          </p>
+        }
       </article>
     }
   }

@@ -136,6 +136,7 @@ export class AdvanceService {
       description: row['description'] ? String(row['description']) : undefined,
       status: status === 'DEDUCTED' || status === 'CANCELLED' ? status : 'PENDING',
       payrollId: row['payrollId'] ? String(row['payrollId']) : undefined,
+      sourcePayrollId: row['sourcePayrollId'] ? String(row['sourcePayrollId']) : undefined,
       deductedAt: row['deductedAt'] instanceof Timestamp ? row['deductedAt'] : undefined,
       note: row['note'] ? String(row['note']) : undefined,
       createdBy: row['createdBy'] ? String(row['createdBy']) : undefined,

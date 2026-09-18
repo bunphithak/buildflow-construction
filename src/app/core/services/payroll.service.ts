@@ -31,9 +31,14 @@ import { AttendanceService } from './attendance.service';
 import { AdvanceService } from './advance.service';
 import { EmployeeService } from './employee.service';
 import { PayrollCalculationService } from './payroll-calculation.service';
-import { bangkokDateKey, monthRangeBangkok, payrollPeriodKey, roundMoney } from '../utils/datetime.util';
+import { bangkokDateKey, monthRangeBangkok, payrollPeriodKey, roundMoney, startOfDayBangkok } from '../utils/datetime.util';
 import { omitUndefined } from '../utils/form.util';
-import { calculatePayrollTotals, hasPayableWork, snapshotEmployeeRates } from '../utils/payroll.util';
+import {
+  calculatePayrollTotals,
+  hasPayableWork,
+  payrollDisplayLabel,
+  snapshotEmployeeRates,
+} from '../utils/payroll.util';
 
 const BATCH_LIMIT = 400;
 
@@ -305,10 +310,9 @@ export class PayrollService {
     if (!payroll || (payroll.status !== 'CALCULATED' && payroll.status !== 'DRAFT')) {
       throw new Error('PAYROLL_LOCKED');
     }
-    if (payroll.netPay < 0) {
-      throw new Error('NEGATIVE_NET');
-    }
     const actor = this.authService.currentUser()?.uid;
+    const carryAmount = payroll.netPay < 0 ? roundMoney(Math.abs(payroll.netPay)) : 0;
+    const carryRef = carryAmount > 0 ? doc(this.advancesCollection()) : null;
     await runTransaction(this.firestore, async (tx) => {
       const payrollRef = doc(this.firestore, COLLECTIONS.payrolls, id);
       const snapshot = await tx.get(payrollRef);
@@ -319,17 +323,23 @@ export class PayrollService {
       if (current.status === 'APPROVED' || current.status === 'PAID' || current.status === 'CANCELLED') {
         throw new Error('PAYROLL_LOCKED');
       }
-      for (const advanceId of current.selectedAdvanceIds) {
-        const advanceRef = doc(this.firestore, COLLECTIONS.employeeAdvances, advanceId);
-        const advanceSnap = await tx.get(advanceRef);
+      const advanceRefs = current.selectedAdvanceIds.map((advanceId) =>
+        doc(this.firestore, COLLECTIONS.employeeAdvances, advanceId),
+      );
+      const advanceSnaps = await Promise.all(advanceRefs.map((ref) => tx.get(ref)));
+      for (const advanceSnap of advanceSnaps) {
         if (!advanceSnap.exists()) {
           continue;
         }
-        const status = advanceSnap.data()['status'];
-        if (status !== 'PENDING') {
+        if (advanceSnap.data()['status'] !== 'PENDING') {
           throw new Error('ADVANCE_LOCKED');
         }
-        tx.update(advanceRef, {
+      }
+      for (const advanceSnap of advanceSnaps) {
+        if (!advanceSnap.exists()) {
+          continue;
+        }
+        tx.update(advanceSnap.ref, {
           status: 'DEDUCTED',
           payrollId: id,
           deductedAt: serverTimestamp(),
@@ -337,12 +347,29 @@ export class PayrollService {
           updatedBy: actor,
         });
       }
-      tx.update(payrollRef, {
+      if (carryRef && carryAmount > 0) {
+        tx.set(carryRef, omitUndefined({
+          employeeId: current.employeeId,
+          advanceDate: Timestamp.fromDate(startOfDayBangkok(new Date())),
+          amount: carryAmount,
+          description: `ยกยอดติดลบจากงวด ${payrollDisplayLabel(current)}`,
+          note: 'สร้างอัตโนมัติเมื่ออนุมัติ Payroll ที่ยอดสุทธิติดลบ',
+          status: 'PENDING',
+          sourcePayrollId: id,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          createdBy: actor,
+          updatedBy: actor,
+        }));
+      }
+      tx.update(payrollRef, omitUndefined({
         status: 'APPROVED',
         approvedAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         updatedBy: actor,
-      });
+        carriedForwardAmount: carryAmount > 0 ? carryAmount : null,
+        carriedForwardAdvanceId: carryRef && carryAmount > 0 ? carryRef.id : null,
+      }) as DocumentData);
     });
   }
 
@@ -351,17 +378,62 @@ export class PayrollService {
     if (!payroll || payroll.status !== 'APPROVED') {
       throw new Error('PAYROLL_LOCKED');
     }
+    const carryId = payroll.carriedForwardAdvanceId;
+    const dependents = carryId
+      ? (await this.getPayrollsByEmployee(payroll.employeeId)).filter(
+          (item) => item.id !== id && item.selectedAdvanceIds.includes(carryId),
+        )
+      : [];
+    if (dependents.some((item) => this.isLocked(item.status))) {
+      throw new Error('CARRY_LOCKED');
+    }
     const actor = this.authService.currentUser()?.uid;
     await runTransaction(this.firestore, async (tx) => {
       const payrollRef = doc(this.firestore, COLLECTIONS.payrolls, id);
-      for (const advanceId of payroll.selectedAdvanceIds) {
-        const advanceRef = doc(this.firestore, COLLECTIONS.employeeAdvances, advanceId);
-        const advanceSnap = await tx.get(advanceRef);
+      const carryRef = carryId ? doc(this.firestore, COLLECTIONS.employeeAdvances, carryId) : null;
+      const carrySnap = carryRef ? await tx.get(carryRef) : null;
+      const otherSnaps = await Promise.all(
+        dependents.map((item) => tx.get(doc(this.firestore, COLLECTIONS.payrolls, item.id))),
+      );
+      const advanceSnaps = await Promise.all(
+        payroll.selectedAdvanceIds.map((advanceId) =>
+          tx.get(doc(this.firestore, COLLECTIONS.employeeAdvances, advanceId)),
+        ),
+      );
+
+      if (carrySnap?.exists() && carrySnap.data()['status'] === 'DEDUCTED') {
+        throw new Error('CARRY_LOCKED');
+      }
+      for (const otherSnap of otherSnaps) {
+        if (!otherSnap.exists()) {
+          continue;
+        }
+        const current = this.mapPayroll({ id: otherSnap.id, ...otherSnap.data() });
+        if (this.isLocked(current.status)) {
+          throw new Error('CARRY_LOCKED');
+        }
+      }
+
+      if (carryRef && carrySnap?.exists()) {
+        tx.delete(carryRef);
+      }
+      for (const otherSnap of otherSnaps) {
+        if (!otherSnap.exists()) {
+          continue;
+        }
+        const current = this.mapPayroll({ id: otherSnap.id, ...otherSnap.data() });
+        tx.update(otherSnap.ref, {
+          selectedAdvanceIds: current.selectedAdvanceIds.filter((item) => item !== carryId),
+          updatedAt: serverTimestamp(),
+          updatedBy: actor,
+        });
+      }
+      for (const advanceSnap of advanceSnaps) {
         if (!advanceSnap.exists()) {
           continue;
         }
         if (advanceSnap.data()['payrollId'] === id) {
-          tx.update(advanceRef, {
+          tx.update(advanceSnap.ref, {
             status: 'PENDING',
             payrollId: null,
             deductedAt: null,
@@ -373,10 +445,17 @@ export class PayrollService {
       tx.update(payrollRef, {
         status: 'CALCULATED',
         approvedAt: null,
+        carriedForwardAmount: null,
+        carriedForwardAdvanceId: null,
         updatedAt: serverTimestamp(),
         updatedBy: actor,
       });
     });
+    for (const other of dependents) {
+      if (!this.isLocked(other.status)) {
+        await this.refreshTotals(other.id);
+      }
+    }
   }
 
   async markPaid(id: string): Promise<void> {
@@ -433,10 +512,6 @@ export class PayrollService {
       }
       if (item.status === 'CANCELLED') {
         errors.push(`${item.id}: ถูกยกเลิกแล้ว`);
-        return;
-      }
-      if (item.netPay < 0) {
-        errors.push(`${item.id}: ยอดหักมากกว่ารายได้`);
       }
     });
     if (errors.length > 0) {
@@ -485,6 +560,10 @@ export class PayrollService {
       }
     }
     return rows;
+  }
+
+  private advancesCollection() {
+    return collection(this.firestore, COLLECTIONS.employeeAdvances);
   }
 
   private sumAdvances(rows: EmployeeAdvance[]): number {
@@ -566,6 +645,11 @@ export class PayrollService {
       selectedAdvanceIds: Array.isArray(row['selectedAdvanceIds'])
         ? row['selectedAdvanceIds'].map((item) => String(item))
         : [],
+      carriedForwardAmount:
+        typeof row['carriedForwardAmount'] === 'number' ? row['carriedForwardAmount'] : undefined,
+      carriedForwardAdvanceId: row['carriedForwardAdvanceId']
+        ? String(row['carriedForwardAdvanceId'])
+        : undefined,
       note: row['note'] ? String(row['note']) : undefined,
       calculatedAt: row['calculatedAt'] instanceof Timestamp ? row['calculatedAt'] : undefined,
       approvedAt: row['approvedAt'] instanceof Timestamp ? row['approvedAt'] : undefined,
@@ -607,6 +691,8 @@ export function mapPayrollError(error: unknown): string {
         return 'Payroll นี้ถูกล็อกแล้ว ไม่สามารถแก้ไขได้';
       case 'NEGATIVE_NET':
         return 'ยอดหักมากกว่ารายได้ กรุณาตรวจสอบก่อนอนุมัติ';
+      case 'CARRY_LOCKED':
+        return 'ไม่สามารถยกเลิกอนุมัติได้ เพราะยอดติดลบถูกนำไปหักในงวดถัดไปแล้ว';
       case 'ADVANCE_LOCKED':
         return 'มีเงินเบิกที่ถูกใช้ไปแล้ว ไม่สามารถอนุมัติได้';
       case 'INVALID_ADJUSTMENT':

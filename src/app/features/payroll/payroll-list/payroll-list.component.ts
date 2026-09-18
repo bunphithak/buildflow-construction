@@ -158,10 +158,18 @@ export class PayrollListComponent implements OnInit {
     if (ids.length === 0) {
       return;
     }
+    const negatives = this.payrolls().filter((item) => ids.includes(item.id) && item.netPay < 0);
+    const extra =
+      negatives.length === 0
+        ? ''
+        : `\n\nมี ${negatives.length} รายที่ยอดติดลบ จะยกยอดไปรอหักรอบถัดไป และงวดนี้จ่าย 0 บาท:\n` +
+          negatives
+            .map((item) => `${this.employeeName(item.employeeId)} ${this.money(item.netPay)}`)
+            .join('\n');
     const confirmed = await this.confirmDialog.confirm({
-      title: 'อนุมัติหลายรายการ',
-      message: `ยืนยันอนุมัติ Payroll ${ids.length} รายการของงวด ${this.periodLabel()}?`,
-      confirmLabel: 'อนุมัติ',
+      title: negatives.length > 0 ? 'อนุมัติและยกยอดติดลบ' : 'อนุมัติหลายรายการ',
+      message: `ยืนยันอนุมัติ Payroll ${ids.length} รายการของงวด ${this.periodLabel()}?${extra}`,
+      confirmLabel: negatives.length > 0 ? 'อนุมัติและยกยอด' : 'อนุมัติ',
     });
     if (!confirmed) {
       return;
