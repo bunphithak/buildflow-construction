@@ -4,8 +4,13 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
+    "start:test": "ng serve --configuration=test",
     "build": "ng build",
+    "build:test": "ng build --configuration=test",
+    "build:prod": "ng build --configuration=production",
     "watch": "ng build --watch --configuration development",
+    "deploy:test": "npm run build:test && firebase deploy --project test",
+    "deploy:prod": "npm run build:prod && firebase deploy --project prod",
     "test": "ng test"
   },
   "private": true,

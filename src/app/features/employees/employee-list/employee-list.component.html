@@ -28,12 +28,12 @@
       type="search"
       placeholder="รหัส, ชื่อ, นามสกุล, ชื่อเล่น"
       [ngModel]="search()"
-      (ngModelChange)="search.set($event)"
+      (ngModelChange)="setSearch($event)"
     />
   </label>
   <label>
     ประเภทการจ้าง
-    <select [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event)">
+    <select [ngModel]="typeFilter()" (ngModelChange)="setTypeFilter($event)">
       <option value="">ทั้งหมด</option>
       <option value="DAILY">รายวัน</option>
       <option value="MONTHLY">รายเดือน</option>
@@ -41,7 +41,7 @@
   </label>
   <label>
     ตำแหน่ง
-    <select [ngModel]="positionFilter()" (ngModelChange)="positionFilter.set($event)">
+    <select [ngModel]="positionFilter()" (ngModelChange)="setPositionFilter($event)">
       <option value="">ทั้งหมด</option>
       @for (position of positions(); track position) {
         <option [value]="position">{{ position }}</option>
@@ -49,8 +49,26 @@
     </select>
   </label>
   <label>
+    สัญชาติ
+    <select [ngModel]="nationalityFilter()" (ngModelChange)="setNationalityFilter($event)">
+      <option value="">ทั้งหมด</option>
+      @for (item of nationalities; track item.value) {
+        <option [value]="item.value">{{ item.label }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    เพศ
+    <select [ngModel]="genderFilter()" (ngModelChange)="setGenderFilter($event)">
+      <option value="">ทั้งหมด</option>
+      @for (item of genders; track item.value) {
+        <option [value]="item.value">{{ item.label }}</option>
+      }
+    </select>
+  </label>
+  <label>
     สถานะ
-    <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+    <select [ngModel]="statusFilter()" (ngModelChange)="setStatusFilter($event)">
       <option value="">ทั้งหมด</option>
       <option value="ACTIVE">ใช้งาน</option>
       <option value="INACTIVE">ปิดใช้งาน</option>
@@ -75,6 +93,8 @@
               <th>ชื่อ-นามสกุล</th>
               <th>ชื่อเล่น</th>
               <th>ตำแหน่ง</th>
+              <th>สัญชาติ</th>
+              <th>เพศ</th>
               <th>ประเภท</th>
               <th>ค่าจ้าง</th>
               <th>เบอร์โทร</th>
@@ -83,27 +103,96 @@
             </tr>
           </thead>
           <tbody>
-            @for (employee of filteredEmployees(); track employee.id) {
+            @for (employee of pagedEmployees(); track employee.id) {
               <tr>
                 <td>{{ employee.employeeCode }}</td>
                 <td>{{ fullName(employee) }}</td>
                 <td>{{ employee.nickname || '-' }}</td>
                 <td>{{ employee.position }}</td>
+                <td>{{ nationality(employee) }}</td>
+                <td>{{ gender(employee) }}</td>
                 <td>{{ typeLabels[employee.employmentType] }}</td>
                 <td>{{ wage(employee) }}</td>
                 <td>{{ employee.phone || '-' }}</td>
                 <td><app-status-badge [status]="employee.status" /></td>
-                <td class="actions">
-                  <a [routerLink]="['/employees', employee.id]" class="link">ดู</a>
-                  <a [routerLink]="['/employees', employee.id, 'edit']" class="link">แก้ไข</a>
-                  <button type="button" class="link" (click)="toggleStatus(employee)">
-                    {{ statusActionLabel(employee.status) }}
+                <td class="actions icon-actions">
+                  <a
+                    [routerLink]="['/employees', employee.id]"
+                    class="icon-btn"
+                    title="ดู"
+                    aria-label="ดู"
+                  >
+                    <i class="fa fa-eye" aria-hidden="true"></i>
+                  </a>
+                  <a
+                    [routerLink]="['/employees', employee.id, 'edit']"
+                    class="icon-btn"
+                    title="แก้ไข"
+                    aria-label="แก้ไข"
+                  >
+                    <i class="fa fa-pencil" aria-hidden="true"></i>
+                  </a>
+                  <button
+                    type="button"
+                    class="icon-btn"
+                    [class.danger]="employee.status === 'ACTIVE'"
+                    [title]="statusActionLabel(employee.status)"
+                    [attr.aria-label]="statusActionLabel(employee.status)"
+                    (click)="toggleStatus(employee)"
+                  >
+                    <i
+                      class="fa"
+                      [class.fa-ban]="employee.status === 'ACTIVE'"
+                      [class.fa-check]="employee.status === 'INACTIVE'"
+                      aria-hidden="true"
+                    ></i>
                   </button>
                 </td>
               </tr>
             }
           </tbody>
         </table>
+      </div>
+      <div class="pager">
+        <p>{{ rangeLabel() }}</p>
+        <label class="page-size">
+          ต่อหน้า
+          <select [ngModel]="pageSize()" (ngModelChange)="setPageSize(+$event)">
+            @for (size of pageSizes; track size) {
+              <option [ngValue]="size">{{ size }}</option>
+            }
+          </select>
+        </label>
+        <div class="pager-buttons">
+          <button type="button" class="btn btn-ghost" [disabled]="currentPage() === 1" (click)="goToPage(currentPage() - 1)">
+            ก่อนหน้า
+          </button>
+          @if (pageNumbers()[0] > 1) {
+            <button type="button" class="page-btn" (click)="goToPage(1)">1</button>
+            @if (pageNumbers()[0] > 2) {
+              <span class="ellipsis">…</span>
+            }
+          }
+          @for (item of pageNumbers(); track item) {
+            <button
+              type="button"
+              class="page-btn"
+              [class.active]="item === currentPage()"
+              (click)="goToPage(item)"
+            >
+              {{ item }}
+            </button>
+          }
+          @if (pageNumbers()[pageNumbers().length - 1] < totalPages()) {
+            @if (pageNumbers()[pageNumbers().length - 1] < totalPages() - 1) {
+              <span class="ellipsis">…</span>
+            }
+            <button type="button" class="page-btn" (click)="goToPage(totalPages())">{{ totalPages() }}</button>
+          }
+          <button type="button" class="btn btn-ghost" [disabled]="currentPage() === totalPages()" (click)="goToPage(currentPage() + 1)">
+            ถัดไป
+          </button>
+        </div>
       </div>
     </section>
   }

@@ -88,12 +88,16 @@
               @if (canManage()) {
                 <td>{{ money(item.totalLaborCost) }}</td>
               }
-              <td class="actions">
+              <td class="actions icon-actions">
                 @if (canManage()) {
-                  <a [routerLink]="['/attendance', item.id, 'edit']" class="link">แก้ไข</a>
+                  <a [routerLink]="['/attendance', item.id, 'edit']" class="icon-btn" title="แก้ไข" aria-label="แก้ไข">
+                    <i class="fa fa-pencil" aria-hidden="true"></i>
+                  </a>
                 }
                 @if (canDelete()) {
-                  <button type="button" class="link danger" (click)="remove(item)">ลบ</button>
+                  <button type="button" class="icon-btn danger" title="ลบ" aria-label="ลบ" (click)="remove(item)">
+                    <i class="fa fa-trash" aria-hidden="true"></i>
+                  </button>
                 }
               </td>
             </tr>

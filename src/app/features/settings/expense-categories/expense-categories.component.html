@@ -51,10 +51,24 @@
               <td>{{ item.name }}</td>
               <td><app-status-badge kind="employee" [status]="item.status" /></td>
               <td>
-                <div class="row-actions">
-                  <button type="button" class="link" (click)="startEdit(item)">แก้ไข</button>
-                  <button type="button" class="link" (click)="toggle(item)">
-                    {{ item.status === 'ACTIVE' ? 'ปิดใช้งาน' : 'เปิดใช้งาน' }}
+                <div class="row-actions icon-actions">
+                  <button type="button" class="icon-btn" title="แก้ไข" aria-label="แก้ไข" (click)="startEdit(item)">
+                    <i class="fa fa-pencil" aria-hidden="true"></i>
+                  </button>
+                  <button
+                    type="button"
+                    class="icon-btn"
+                    [class.danger]="item.status === 'ACTIVE'"
+                    [title]="item.status === 'ACTIVE' ? 'ปิดใช้งาน' : 'เปิดใช้งาน'"
+                    [attr.aria-label]="item.status === 'ACTIVE' ? 'ปิดใช้งาน' : 'เปิดใช้งาน'"
+                    (click)="toggle(item)"
+                  >
+                    <i
+                      class="fa"
+                      [class.fa-ban]="item.status === 'ACTIVE'"
+                      [class.fa-check]="item.status === 'INACTIVE'"
+                      aria-hidden="true"
+                    ></i>
                   </button>
                 </div>
               </td>

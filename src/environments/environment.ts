@@ -1,15 +1,18 @@
-export const environment = {
+import { AppEnvironment } from './environment.model';
+
+export const environment: AppEnvironment = {
   production: false,
+  name: 'development',
   appName: 'Construction Workforce Management System',
   companyName: 'BuildFlow Construction',
-  firstAdminEmails: ['admin@buildflow.co.th', 'burphithak01@gmail.com'],
+  firstAdminEmails: ['admin@buildflow.co.th', 'burphithak01@gmail.com', 'test@buildflow.co.th'],
   firebase: {
-    apiKey: 'AIzaSyDJGFreKKnr7POEIrhjokiNA-AmxCdX5R4',
-    authDomain: 'buildflow-construction-d3e30.firebaseapp.com',
-    projectId: 'buildflow-construction-d3e30',
-    storageBucket: 'buildflow-construction-d3e30.firebasestorage.app',
-    messagingSenderId: '427945699861',
-    appId: '1:427945699861:web:3403e9ea3e0e6bf9067c1c',
-    measurementId: 'G-4RW7ZW1XBX',
+    apiKey: 'AIzaSyBMMAdbU42hXvJ7sYDDKDG8Xh8irPAnAcM',
+    authDomain: 'buildflow-construction-test.firebaseapp.com',
+    projectId: 'buildflow-construction-test',
+    storageBucket: 'buildflow-construction-test.firebasestorage.app',
+    messagingSenderId: '365977278015',
+    appId: '1:365977278015:web:6bc16698700c24ded2ca8a',
+    measurementId: 'G-7R140YQP4N',
   },
 };

@@ -56,6 +56,24 @@
           <input type="text" formControlName="nickname" />
         </label>
         <label>
+          สัญชาติ
+          <select formControlName="nationality">
+            <option value="">เลือกสัญชาติ</option>
+            @for (item of nationalities; track item.value) {
+              <option [value]="item.value">{{ item.label }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          เพศ
+          <select formControlName="gender">
+            <option value="">เลือกเพศ</option>
+            @for (item of genders; track item.value) {
+              <option [value]="item.value">{{ item.label }}</option>
+            }
+          </select>
+        </label>
+        <label>
           เบอร์โทร
           <input type="tel" formControlName="phone" />
         </label>
@@ -71,14 +89,30 @@
       <div class="grid">
         <label>
           ตำแหน่ง *
-          <input type="text" formControlName="position" />
+          <select formControlName="position">
+            <option value="" disabled>เลือกตำแหน่ง</option>
+            @if (customPosition(); as custom) {
+              <option [value]="custom">{{ custom }}</option>
+            }
+            @for (item of positions; track item.name) {
+              <option [value]="item.name">{{ item.name }} — {{ item.description }}</option>
+            }
+          </select>
           @if (hasError('position', 'required')) {
-            <small>กรุณากรอกตำแหน่ง</small>
+            <small>กรุณาเลือกตำแหน่ง</small>
           }
         </label>
         <label>
           แผนก
-          <input type="text" formControlName="department" />
+          <select formControlName="department">
+            <option value="">เลือกแผนก</option>
+            @if (customDepartment(); as custom) {
+              <option [value]="custom">{{ custom }}</option>
+            }
+            @for (item of departments; track item.name) {
+              <option [value]="item.name">{{ item.name }} — {{ item.description }}</option>
+            }
+          </select>
         </label>
         <label>
           วันที่เริ่มงาน *

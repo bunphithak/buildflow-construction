@@ -1,10 +1,13 @@
 <div class="layout" [ngClass]="{ 'sidebar-open': sidebarOpen() }">
   <aside class="sidebar">
     <div class="brand">
-      <span class="logo">BF</span>
+      <img class="logo" [src]="logoPath" alt="BuildFlow Construction" />
       <div>
         <strong>{{ companyName }}</strong>
         <small>ระบบบริหารพนักงานและงานก่อสร้าง</small>
+        @if (isTestEnv) {
+          <span class="env-badge">โหมดทดสอบ</span>
+        }
       </div>
     </div>
 

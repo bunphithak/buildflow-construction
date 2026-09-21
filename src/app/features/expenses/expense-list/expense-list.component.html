@@ -109,10 +109,16 @@
               <td>{{ item.vendor || '-' }}</td>
               <td>{{ item.documentNo || '-' }}</td>
               <td>
-                <div class="actions">
-                  <a class="link" [routerLink]="['/expenses', item.id]">ดู</a>
-                  <a class="link" [routerLink]="['/expenses', item.id, 'edit']">แก้ไข</a>
-                  <button type="button" class="link danger" (click)="remove(item)">ลบ</button>
+                <div class="actions icon-actions">
+                  <a class="icon-btn" [routerLink]="['/expenses', item.id]" title="ดู" aria-label="ดู">
+                    <i class="fa fa-eye" aria-hidden="true"></i>
+                  </a>
+                  <a class="icon-btn" [routerLink]="['/expenses', item.id, 'edit']" title="แก้ไข" aria-label="แก้ไข">
+                    <i class="fa fa-pencil" aria-hidden="true"></i>
+                  </a>
+                  <button type="button" class="icon-btn danger" title="ลบ" aria-label="ลบ" (click)="remove(item)">
+                    <i class="fa fa-trash" aria-hidden="true"></i>
+                  </button>
                 </div>
               </td>
             </tr>

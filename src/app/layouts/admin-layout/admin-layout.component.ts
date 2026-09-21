@@ -2,6 +2,7 @@ import { NgClass } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { environment } from '../../../environments/environment';
+import { BRAND_LOGO_PATH } from '../../core/constants/brand';
 import { AuthService } from '../../core/auth/auth.service';
 import { USER_ROLE_LABELS, UserRole } from '../../core/models';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -34,6 +35,8 @@ export class AdminLayoutComponent {
   private readonly router = inject(Router);
 
   readonly companyName = environment.companyName;
+  readonly logoPath = BRAND_LOGO_PATH;
+  readonly isTestEnv = environment.name !== 'production';
   readonly sidebarOpen = signal(false);
   readonly displayName = this.authService.displayName;
   readonly role = this.authService.role;

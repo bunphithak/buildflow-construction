@@ -110,7 +110,9 @@
               <span>{{ row.category }} · {{ row.description }}</span>
               <strong>{{ money(row.amount) }}</strong>
               @if (isAdmin() && !locked()) {
-                <button type="button" class="link" (click)="removeAdjustment(row.id)">ลบ</button>
+                <button type="button" class="icon-btn danger" title="ลบ" aria-label="ลบ" (click)="removeAdjustment(row.id)">
+                  <i class="fa fa-trash" aria-hidden="true"></i>
+                </button>
               }
             </div>
           }
@@ -134,7 +136,9 @@
               <span>{{ row.category }} · {{ row.description }}</span>
               <strong>{{ money(row.amount) }}</strong>
               @if (isAdmin() && !locked()) {
-                <button type="button" class="link" (click)="removeAdjustment(row.id)">ลบ</button>
+                <button type="button" class="icon-btn danger" title="ลบ" aria-label="ลบ" (click)="removeAdjustment(row.id)">
+                  <i class="fa fa-trash" aria-hidden="true"></i>
+                </button>
               }
             </div>
           }

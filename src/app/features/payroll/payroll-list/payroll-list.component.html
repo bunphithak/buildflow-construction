@@ -80,9 +80,13 @@
               <td>{{ money(item.totalDeduction) }}</td>
               <td>{{ money(item.netPay) }}</td>
               <td><app-status-badge kind="payroll" [status]="item.status" /></td>
-              <td class="actions">
-                <a class="link" [routerLink]="['/payroll', item.id]">ดู</a>
-                <a class="link" [routerLink]="['/payroll', item.id, 'payslip']">สลิป</a>
+              <td class="actions icon-actions">
+                <a class="icon-btn" [routerLink]="['/payroll', item.id]" title="ดู" aria-label="ดู">
+                  <i class="fa fa-eye" aria-hidden="true"></i>
+                </a>
+                <a class="icon-btn" [routerLink]="['/payroll', item.id, 'payslip']" title="สลิป" aria-label="สลิป">
+                  <i class="fa fa-file-text-o" aria-hidden="true"></i>
+                </a>
               </td>
             </tr>
           }
@@ -104,9 +108,13 @@
         <div class="row"><span>หัก</span><strong>{{ amount(item.totalDeduction) }}</strong></div>
         <div class="row"><span>สุทธิ</span><strong>{{ amount(item.netPay) }}</strong></div>
         <app-status-badge kind="payroll" [status]="item.status" />
-        <div class="actions">
-          <a class="link" [routerLink]="['/payroll', item.id]">ดู</a>
-          <a class="link" [routerLink]="['/payroll', item.id, 'payslip']">สลิป</a>
+        <div class="actions icon-actions">
+          <a class="icon-btn" [routerLink]="['/payroll', item.id]" title="ดู" aria-label="ดู">
+            <i class="fa fa-eye" aria-hidden="true"></i>
+          </a>
+          <a class="icon-btn" [routerLink]="['/payroll', item.id, 'payslip']" title="สลิป" aria-label="สลิป">
+            <i class="fa fa-file-text-o" aria-hidden="true"></i>
+          </a>
         </div>
       </article>
     }

@@ -87,7 +87,9 @@
               <td>{{ money(row.netPay) }}</td>
               <td>
                 @if (row.existing) {
-                  <a class="link" [routerLink]="['/payroll', row.existing.id]">มี Payroll ในช่วงนี้แล้ว</a>
+                  <a class="icon-btn" [routerLink]="['/payroll', row.existing.id]" title="มี Payroll ในช่วงนี้แล้ว" aria-label="มี Payroll ในช่วงนี้แล้ว">
+                    <i class="fa fa-eye" aria-hidden="true"></i>
+                  </a>
                 } @else {
                   <span>พร้อมสร้าง</span>
                 }

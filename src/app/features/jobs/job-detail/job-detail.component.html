@@ -134,7 +134,9 @@
                   <td><app-status-badge kind="assignment" [status]="row.assignment.status" /></td>
                   <td>
                     @if (canManage()) {
-                      <button type="button" class="link" (click)="removeMember(row)">นำออก</button>
+                      <button type="button" class="icon-btn danger" title="นำออก" aria-label="นำออก" (click)="removeMember(row)">
+                        <i class="fa fa-user-times" aria-hidden="true"></i>
+                      </button>
                     }
                   </td>
                 </tr>
@@ -315,7 +317,11 @@
                   <td>{{ item.description }}</td>
                   <td>{{ money(item.amount) }}</td>
                   <td>{{ item.vendor || '-' }}</td>
-                  <td><a class="link-view" [routerLink]="['/expenses', item.id]">ดู</a></td>
+                  <td>
+                    <a class="icon-btn" [routerLink]="['/expenses', item.id]" title="ดู" aria-label="ดู">
+                      <i class="fa fa-eye" aria-hidden="true"></i>
+                    </a>
+                  </td>
                 </tr>
               }
             </tbody>

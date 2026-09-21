@@ -27,6 +27,8 @@
         <div class="meta">
           <span>{{ employee.employeeCode }}</span>
           <span>{{ employee.position }}</span>
+          <span>{{ nationality(employee) }}</span>
+          <span>{{ gender(employee) }}</span>
           <app-status-badge [status]="employee.status" />
         </div>
       </div>
@@ -50,6 +52,9 @@
         <div><span>ค่าแรง/เงินเดือน</span><strong>{{ wage(employee) }}</strong></div>
         <div><span>ค่า OT</span><strong>{{ overtime(employee) }}</strong></div>
         <div><span>วันที่เริ่มงาน</span><strong>{{ employee.startDate | thaiDate }}</strong></div>
+        <div><span>สัญชาติ</span><strong>{{ nationality(employee) }}</strong></div>
+        <div><span>เพศ</span><strong>{{ gender(employee) }}</strong></div>
+        <div><span>แผนก</span><strong>{{ employee.department || '-' }}</strong></div>
         <div><span>เบอร์โทร</span><strong>{{ employee.phone || '-' }}</strong></div>
         <div><span>ที่อยู่</span><strong>{{ employee.address || '-' }}</strong></div>
         <div><span>ธนาคาร</span><strong>{{ employee.bankName || '-' }}</strong></div>
@@ -175,7 +180,11 @@
                     <td>{{ money(item.totalDeduction) }}</td>
                     <td>{{ money(item.netPay) }}</td>
                     <td><app-status-badge kind="payroll" [status]="item.status" /></td>
-                    <td><a class="link" [routerLink]="['/payroll', item.id, 'payslip']">ดูสลิป</a></td>
+                    <td>
+                      <a class="icon-btn" [routerLink]="['/payroll', item.id, 'payslip']" title="ดูสลิป" aria-label="ดูสลิป">
+                        <i class="fa fa-file-text-o" aria-hidden="true"></i>
+                      </a>
+                    </td>
                   </tr>
                 }
               </tbody>

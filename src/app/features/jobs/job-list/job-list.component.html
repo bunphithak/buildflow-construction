@@ -77,10 +77,14 @@
                 <td>{{ money(row.job.estimatedBudget) }}</td>
                 <td><app-status-badge kind="job" [status]="row.job.status" /></td>
                 <td>{{ row.employeeCount }}</td>
-                <td class="actions">
-                  <a [routerLink]="['/jobs', row.job.id]" class="link">ดูรายละเอียด</a>
+                <td class="actions icon-actions">
+                  <a [routerLink]="['/jobs', row.job.id]" class="icon-btn" title="ดูรายละเอียด" aria-label="ดูรายละเอียด">
+                    <i class="fa fa-eye" aria-hidden="true"></i>
+                  </a>
                   @if (canManage()) {
-                    <a [routerLink]="['/jobs', row.job.id, 'edit']" class="link">แก้ไข</a>
+                    <a [routerLink]="['/jobs', row.job.id, 'edit']" class="icon-btn" title="แก้ไข" aria-label="แก้ไข">
+                      <i class="fa fa-pencil" aria-hidden="true"></i>
+                    </a>
                     <select
                       class="status-select"
                       [ngModel]="row.job.status"

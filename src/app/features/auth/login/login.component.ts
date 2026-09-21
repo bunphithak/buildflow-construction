@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { environment } from '../../../../environments/environment';
+import { BRAND_LOGO_PATH } from '../../../core/constants/brand';
 
 @Component({
   selector: 'app-login',
@@ -18,6 +19,8 @@ export class LoginComponent {
 
   readonly appName = environment.appName;
   readonly companyName = environment.companyName;
+  readonly logoPath = BRAND_LOGO_PATH;
+  readonly isTestEnv = environment.name !== 'production';
   readonly submitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
 

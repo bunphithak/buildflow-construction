@@ -1,9 +1,12 @@
 <main class="login-page">
   <section class="login-card">
     <div class="brand">
-      <span class="logo">BF</span>
+      <img class="logo" [src]="logoPath" alt="BuildFlow Construction" />
       <h1>{{ companyName }}</h1>
       <p>{{ appName }}</p>
+      @if (isTestEnv) {
+        <p class="env-badge">โหมดทดสอบ — ข้อมูลไม่ใช่ของจริง</p>
+      }
     </div>
 
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>

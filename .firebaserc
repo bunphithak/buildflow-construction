@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "buildflow-construction-d3e30"
+    "default": "buildflow-construction-d3e30",
+    "prod": "buildflow-construction-d3e30",
+    "test": "buildflow-construction-test"
   }
 }

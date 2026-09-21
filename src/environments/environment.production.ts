@@ -1,5 +1,8 @@
-export const environment = {
+import { AppEnvironment } from './environment.model';
+
+export const environment: AppEnvironment = {
   production: true,
+  name: 'production',
   appName: 'Construction Workforce Management System',
   companyName: 'BuildFlow Construction',
   firstAdminEmails: ['admin@buildflow.co.th', 'burphithak01@gmail.com'],

@@ -8,7 +8,7 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
-import { Employee, EmployeeWriteData, EmploymentType } from '../../../core/models';
+import { Employee, EmployeeWriteData, EMPLOYEE_DEPARTMENTS, EMPLOYEE_GENDERS, EMPLOYEE_NATIONALITIES, EMPLOYEE_POSITIONS, EmploymentType } from '../../../core/models';
 import {
   EmployeeService,
   mapEmployeeError,
@@ -49,6 +49,12 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
   readonly previewUrl = signal<string | null>(null);
   readonly selectedFile = signal<File | null>(null);
   readonly formError = signal<string | null>(null);
+  readonly positions = EMPLOYEE_POSITIONS;
+  readonly departments = EMPLOYEE_DEPARTMENTS;
+  readonly nationalities = EMPLOYEE_NATIONALITIES;
+  readonly genders = EMPLOYEE_GENDERS;
+  readonly customPosition = signal<string | null>(null);
+  readonly customDepartment = signal<string | null>(null);
 
   readonly form = this.fb.nonNullable.group({
     employeeCode: ['', Validators.required],
@@ -57,6 +63,8 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
     nickname: [''],
     phone: [''],
     address: [''],
+    nationality: [''],
+    gender: [''],
     position: ['', Validators.required],
     department: [''],
     startDate: ['', Validators.required],
@@ -204,6 +212,8 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
       nickname: employee.nickname ?? '',
       phone: employee.phone ?? '',
       address: employee.address ?? '',
+      nationality: employee.nationality ?? '',
+      gender: employee.gender ?? '',
       position: employee.position,
       department: employee.department ?? '',
       startDate: toDateInputValue(employee.startDate),
@@ -216,6 +226,11 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
       status: employee.status,
       note: employee.note ?? '',
     });
+    const knownPosition = EMPLOYEE_POSITIONS.some((item) => item.name === employee.position);
+    this.customPosition.set(knownPosition ? null : employee.position || null);
+    const department = employee.department?.trim() ?? '';
+    const knownDepartment = EMPLOYEE_DEPARTMENTS.some((item) => item.name === department);
+    this.customDepartment.set(!department || knownDepartment ? null : department);
     this.previewUrl.set(employee.profileImageUrl ?? null);
     this.applyRateValidators(employee.employmentType, false);
     this.hydrating = false;
@@ -253,6 +268,10 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
       nickname: trimValue(value.nickname),
       phone: trimValue(value.phone),
       address: trimValue(value.address),
+      nationality: value.nationality === 'TH' || value.nationality === 'KH' || value.nationality === 'MM' || value.nationality === 'OTHER'
+        ? value.nationality
+        : undefined,
+      gender: value.gender === 'MALE' || value.gender === 'FEMALE' ? value.gender : undefined,
       position: value.position,
       department: trimValue(value.department),
       startDate,

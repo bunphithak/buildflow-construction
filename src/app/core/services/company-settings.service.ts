@@ -1,6 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { doc, docData, Firestore, serverTimestamp, setDoc } from '@angular/fire/firestore';
 import { DocumentData } from 'firebase/firestore';
+import { BRAND_LOGO_PATH } from '../constants/brand';
 import { COLLECTIONS } from '../constants/collections';
 import { CompanySettings } from '../models';
 import { environment } from '../../../environments/environment';
@@ -10,6 +11,7 @@ const COMPANY_DOC = 'company';
 
 const DEFAULT_COMPANY: CompanySettings = {
   companyName: environment.companyName,
+  logoUrl: BRAND_LOGO_PATH,
   monthlyAbsenceDeductionEnabled: false,
 };
 
@@ -61,7 +63,7 @@ export class CompanySettingsService {
       address: row['address'] ? String(row['address']) : undefined,
       phone: row['phone'] ? String(row['phone']) : undefined,
       taxId: row['taxId'] ? String(row['taxId']) : undefined,
-      logoUrl: row['logoUrl'] ? String(row['logoUrl']) : undefined,
+      logoUrl: row['logoUrl'] ? String(row['logoUrl']) : DEFAULT_COMPANY.logoUrl,
       monthlyAbsenceDeductionEnabled: row['monthlyAbsenceDeductionEnabled'] === true,
     };
   }

@@ -81,6 +81,40 @@ textarea {
   color: var(--color-card);
 }
 
+.icon-actions {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.icon-btn {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 0.6rem;
+  background: var(--color-surface-muted);
+  color: #1d4ed8;
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.icon-btn:hover {
+  background: #dbe7f8;
+}
+
+.icon-btn.danger {
+  color: var(--color-danger);
+}
+
+.icon-btn.danger:hover {
+  background: var(--color-danger-soft);
+}
+
 @media print {
   .no-print {
     display: none !important;

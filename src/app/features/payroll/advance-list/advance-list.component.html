@@ -64,7 +64,9 @@
               <td><app-status-badge kind="advance" [status]="item.status" /></td>
               <td>
                 @if (item.status === 'PENDING') {
-                  <button type="button" class="link" (click)="cancel(item)">ยกเลิก</button>
+                  <button type="button" class="icon-btn danger" title="ยกเลิก" aria-label="ยกเลิก" (click)="cancel(item)">
+                    <i class="fa fa-times" aria-hidden="true"></i>
+                  </button>
                 }
               </td>
             </tr>

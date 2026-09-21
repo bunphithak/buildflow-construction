@@ -25,6 +25,8 @@ import { map } from 'rxjs';
 import { COLLECTIONS } from '../constants/collections';
 import {
   Employee,
+  EmployeeGender,
+  EmployeeNationality,
   EmployeeStatus,
   EmployeeWriteData,
   EmploymentType,
@@ -252,6 +254,8 @@ export class EmployeeService {
       address: data.address?.trim(),
       position: data.position.trim(),
       department: data.department?.trim(),
+      nationality: data.nationality,
+      gender: data.gender,
       startDate: Timestamp.fromDate(data.startDate),
       employmentType: data.employmentType,
       status: data.status,
@@ -288,6 +292,8 @@ export class EmployeeService {
       address: row['address'] ? String(row['address']) : undefined,
       position: String(row['position'] ?? ''),
       department: row['department'] ? String(row['department']) : undefined,
+      nationality: this.mapNationality(row['nationality']),
+      gender: this.mapGender(row['gender']),
       startDate: this.mapStartDate(row['startDate']),
       employmentType,
       status,
@@ -301,6 +307,14 @@ export class EmployeeService {
       createdAt: row['createdAt'] instanceof Timestamp ? row['createdAt'] : undefined,
       updatedAt: row['updatedAt'] instanceof Timestamp ? row['updatedAt'] : undefined,
     };
+  }
+
+  private mapGender(value: unknown): EmployeeGender | undefined {
+    return value === 'MALE' || value === 'FEMALE' ? value : undefined;
+  }
+
+  private mapNationality(value: unknown): EmployeeNationality | undefined {
+    return value === 'TH' || value === 'KH' || value === 'MM' || value === 'OTHER' ? value : undefined;
   }
 
   private mapStartDate(value: unknown): Date | Timestamp | string {

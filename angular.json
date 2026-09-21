@@ -61,6 +61,30 @@
                 }
               ]
             },
+            "test": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "2mb",
+                  "maximumError": "3mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "8kb",
+                  "maximumError": "16kb"
+                }
+              ],
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "outputHashing": "all",
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.test.ts"
+                }
+              ]
+            },
             "development": {
               "optimization": false,
               "extractLicenses": false,
@@ -74,6 +98,9 @@
           "configurations": {
             "production": {
               "buildTarget": "buildflow_consturction:build:production"
+            },
+            "test": {
+              "buildTarget": "buildflow_consturction:build:test"
             },
             "development": {
               "buildTarget": "buildflow_consturction:build:development"
