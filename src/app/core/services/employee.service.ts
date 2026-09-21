@@ -14,12 +14,6 @@ import {
   updateDoc,
   where,
 } from '@angular/fire/firestore';
-import {
-  getDownloadURL,
-  ref,
-  Storage,
-  uploadBytes,
-} from '@angular/fire/storage';
 import { DocumentData } from 'firebase/firestore';
 import { map } from 'rxjs';
 import { COLLECTIONS } from '../constants/collections';
@@ -31,6 +25,7 @@ import {
   EmployeeWriteData,
   EmploymentType,
 } from '../models';
+import { compressImageToDataUrl } from '../utils/image-compress.util';
 import { omitUndefined, toDate } from '../utils/form.util';
 
 const CODE_PATTERN = /^EMP-(\d+)$/i;
@@ -42,7 +37,6 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 })
 export class EmployeeService {
   private readonly firestore = inject(Firestore);
-  private readonly storage = inject(Storage);
   private readonly employeesRef = collection(this.firestore, COLLECTIONS.employees);
 
   readonly employees = signal<Employee[]>([]);
@@ -184,14 +178,8 @@ export class EmployeeService {
 
   async uploadProfileImage(employeeId: string, file: File): Promise<string> {
     this.validateProfileFile(file);
-    const extension = this.fileExtension(file);
-    const storageRef = ref(
-      this.storage,
-      `employees/${employeeId}/profile/avatar-${Date.now()}.${extension}`,
-    );
     try {
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
+      const url = await compressImageToDataUrl(file);
       await updateDoc(doc(this.firestore, COLLECTIONS.employees, employeeId), {
         profileImageUrl: url,
         updatedAt: serverTimestamp(),
@@ -201,16 +189,6 @@ export class EmployeeService {
       console.error('Failed to upload employee profile image', error);
       throw new Error('UPLOAD_FAILED');
     }
-  }
-
-  private fileExtension(file: File): string {
-    if (file.type === 'image/png') {
-      return 'png';
-    }
-    if (file.type === 'image/webp') {
-      return 'webp';
-    }
-    return 'jpg';
   }
 
   private async assertUniqueCode(employeeCode: string, excludeId?: string): Promise<void> {

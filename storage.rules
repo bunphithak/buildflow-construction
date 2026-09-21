@@ -5,39 +5,27 @@ service firebase.storage {
       return request.auth != null;
     }
 
-    function userRole() {
-      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role;
-    }
-
-    function isAdmin() {
-      return isSignedIn() && userRole() == 'ADMIN';
-    }
-
-    function isStaff() {
-      return isSignedIn() && (userRole() == 'ADMIN' || userRole() == 'MANAGER');
-    }
-
     function isAllowedReceipt() {
       return request.resource.size < 10 * 1024 * 1024 &&
         request.resource.contentType.matches('image/jpeg|image/png|image/webp|application/pdf');
     }
 
     match /jobs/{jobId}/expenses/{expenseId}/{fileName} {
-      allow read: if isStaff();
-      allow create, update: if isStaff() && isAllowedReceipt();
-      allow delete: if isStaff();
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isAllowedReceipt();
+      allow delete: if isSignedIn();
     }
 
     match /employees/{employeeId}/profile/{fileName} {
-      allow read: if isSignedIn();
-      allow create, update: if isAdmin() &&
+      allow read: if true;
+      allow create, update: if isSignedIn() &&
         request.resource.size < 5 * 1024 * 1024 &&
         request.resource.contentType.matches('image/jpeg|image/png|image/webp');
-      allow delete: if isAdmin();
+      allow delete: if isSignedIn();
     }
 
     match /receipts/{allPaths=**} {
-      allow read: if isStaff();
+      allow read: if isSignedIn();
       allow write: if false;
     }
 

@@ -14,6 +14,7 @@ import {
   mapEmployeeError,
 } from '../../../core/services/employee.service';
 import { toDateInputValue, trimValue } from '../../../core/utils/form.util';
+import { isRemoteStorageUrl } from '../../../core/utils/image-compress.util';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
 import { ToastService } from '../../../shared/services/toast.service';
@@ -231,7 +232,11 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
     const department = employee.department?.trim() ?? '';
     const knownDepartment = EMPLOYEE_DEPARTMENTS.some((item) => item.name === department);
     this.customDepartment.set(!department || knownDepartment ? null : department);
-    this.previewUrl.set(employee.profileImageUrl ?? null);
+    this.previewUrl.set(
+      employee.profileImageUrl && !isRemoteStorageUrl(employee.profileImageUrl)
+        ? employee.profileImageUrl
+        : null,
+    );
     this.applyRateValidators(employee.employmentType, false);
     this.hydrating = false;
   }

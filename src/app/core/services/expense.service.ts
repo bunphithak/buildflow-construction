@@ -250,7 +250,7 @@ export class ExpenseService {
     const extension = this.extension(file);
     const storagePath = `jobs/${jobId}/expenses/${expenseId}/receipt-${Date.now()}.${extension}`;
     const storageRef = ref(this.storage, storagePath);
-    await uploadBytes(storageRef, file);
+    await uploadBytes(storageRef, file, { contentType: file.type || 'application/octet-stream' });
     const url = await getDownloadURL(storageRef);
     await updateDoc(doc(this.firestore, COLLECTIONS.expenses, expenseId), {
       receiptUrl: url,

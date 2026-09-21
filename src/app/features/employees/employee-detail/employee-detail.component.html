@@ -15,8 +15,8 @@
   @if (employee(); as employee) {
     <section class="profile card">
       <div class="avatar">
-        @if (employee.profileImageUrl) {
-          <img [src]="employee.profileImageUrl" [alt]="fullName(employee)" />
+        @if (photoUrl(employee); as url) {
+          <img [src]="url" [alt]="fullName(employee)" />
         } @else {
           <span>{{ employee.firstName.charAt(0) }}{{ employee.lastName.charAt(0) }}</span>
         }

@@ -11,6 +11,7 @@ import {
 } from '../../../core/services/employee.service';
 import { JobService } from '../../../core/services/job.service';
 import { formatAmount, formatBaht } from '../../../core/utils/form.util';
+import { isRemoteStorageUrl } from '../../../core/utils/image-compress.util';
 import { bangkokDateKey } from '../../../core/utils/datetime.util';
 import { payrollDisplayLabel } from '../../../core/utils/payroll.util';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
@@ -124,6 +125,14 @@ export class EmployeeDetailComponent implements OnInit {
 
   fullName(employee: Employee): string {
     return `${employee.firstName} ${employee.lastName}`.trim();
+  }
+
+  photoUrl(employee: Employee): string | null {
+    const url = employee.profileImageUrl;
+    if (!url || isRemoteStorageUrl(url)) {
+      return null;
+    }
+    return url;
   }
 
   nationality(employee: Employee): string {
