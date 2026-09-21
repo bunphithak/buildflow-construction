@@ -12,7 +12,7 @@
 <section class="card filters">
   <label>
     ค้นหา
-    <input type="search" placeholder="ชื่อ หรืออีเมล" [ngModel]="search()" (ngModelChange)="search.set($event)" />
+    <input type="search" placeholder="ชื่อ หรือชื่อผู้ใช้" [ngModel]="search()" (ngModelChange)="search.set($event)" />
   </label>
   <label>
     บทบาท
@@ -45,7 +45,7 @@
         <thead>
           <tr>
             <th>ชื่อที่แสดง</th>
-            <th>อีเมล</th>
+            <th>ชื่อผู้ใช้</th>
             <th>บทบาท</th>
             <th>พนักงานที่ผูก</th>
             <th>สถานะ</th>
@@ -56,7 +56,7 @@
           @for (user of filtered(); track user.uid) {
             <tr>
               <td>{{ user.displayName }}</td>
-              <td>{{ user.email }}</td>
+              <td>{{ loginName(user) }}</td>
               <td>{{ roleLabels[user.role] }}</td>
               <td>{{ employeeName(user.employeeId) }}</td>
               <td>{{ user.isActive ? 'ใช้งาน' : 'ปิดใช้งาน' }}</td>
@@ -64,9 +64,11 @@
                 <a [routerLink]="['/settings/users', user.uid, 'edit']" class="icon-btn" title="แก้ไข" aria-label="แก้ไข">
                   <i class="fa fa-pencil" aria-hidden="true"></i>
                 </a>
-                <button type="button" class="icon-btn" title="รีเซ็ตรหัสผ่าน" aria-label="รีเซ็ตรหัสผ่าน" (click)="resetPassword(user.email)">
-                  <i class="fa fa-key" aria-hidden="true"></i>
-                </button>
+                @if (canResetPassword(user)) {
+                  <button type="button" class="icon-btn" title="รีเซ็ตรหัสผ่าน" aria-label="รีเซ็ตรหัสผ่าน" (click)="resetPassword(user)">
+                    <i class="fa fa-key" aria-hidden="true"></i>
+                  </button>
+                }
               </td>
             </tr>
           }

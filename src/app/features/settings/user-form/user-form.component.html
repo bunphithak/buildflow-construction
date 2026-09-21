@@ -1,6 +1,6 @@
 <app-page-header
   [title]="isEdit ? 'แก้ไขผู้ใช้' : 'สร้างผู้ใช้'"
-  subtitle="กำหนดอีเมล บทบาท และเมนูที่เข้าถึงได้"
+  subtitle="กำหนดชื่อผู้ใช้ บทบาท และเมนูที่เข้าถึงได้"
 />
 
 @if (loading()) {
@@ -18,10 +18,10 @@
           }
         </label>
         <label>
-          อีเมล *
-          <input type="email" formControlName="email" placeholder="name@company.com" />
-          @if (hasError('email', 'required') || hasError('email', 'email')) {
-            <small>กรุณากรอกอีเมลให้ถูกต้อง</small>
+          ชื่อผู้ใช้ *
+          <input type="text" formControlName="username" autocomplete="off" placeholder="เช่น somchai" />
+          @if (hasError('username', 'required') || hasError('username', 'pattern')) {
+            <small>ใช้ a-z, 0-9, จุด ขีดล่าง หรือขีดกลาง ยาว 3-32 ตัว ไม่ต้องเป็นอีเมล</small>
           }
         </label>
         @if (!isEdit) {

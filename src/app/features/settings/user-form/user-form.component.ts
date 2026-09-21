@@ -9,6 +9,7 @@ import {
 } from '../../../core/models';
 import { EmployeeService } from '../../../core/services/employee.service';
 import { UserService, mapUserError } from '../../../core/services/user.service';
+import { loginId, normalizeUsername } from '../../../core/utils/auth-login.util';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { ToastService } from '../../../shared/services/toast.service';
@@ -37,7 +38,7 @@ export class UserFormComponent implements OnInit {
 
   readonly form = this.fb.nonNullable.group({
     displayName: ['', Validators.required],
-    email: ['', [Validators.required, Validators.email]],
+    username: ['', [Validators.required, Validators.pattern(/^[a-zA-Z0-9._-]{3,32}$/)]],
     password: [''],
     role: this.fb.nonNullable.control<UserRole>('MANAGER', Validators.required),
     employeeId: [''],
@@ -71,7 +72,7 @@ export class UserFormComponent implements OnInit {
       return;
     }
 
-    this.form.controls.email.disable();
+    this.form.controls.username.disable();
     const user = this.userService.getUserById(this.uid ?? '');
     if (user) {
       this.patchUser(user);
@@ -94,7 +95,7 @@ export class UserFormComponent implements OnInit {
     }, 80);
   }
 
-  hasError(control: 'displayName' | 'email' | 'password', error: string): boolean {
+  hasError(control: 'displayName' | 'username' | 'password', error: string): boolean {
     const field = this.form.controls[control];
     return field.touched && field.hasError(error);
   }
@@ -108,7 +109,7 @@ export class UserFormComponent implements OnInit {
 
     const value = this.form.getRawValue();
     const payload = {
-      email: value.email.trim().toLowerCase(),
+      username: normalizeUsername(value.username),
       displayName: value.displayName.trim(),
       role: value.role,
       employeeId: value.employeeId || undefined,
@@ -135,6 +136,7 @@ export class UserFormComponent implements OnInit {
 
   private patchUser(user: {
     displayName: string;
+    username?: string;
     email: string;
     role: UserRole;
     employeeId?: string;
@@ -142,7 +144,7 @@ export class UserFormComponent implements OnInit {
   }): void {
     this.form.patchValue({
       displayName: user.displayName,
-      email: user.email,
+      username: loginId(user),
       role: user.role,
       employeeId: user.employeeId ?? '',
       isActive: user.isActive,

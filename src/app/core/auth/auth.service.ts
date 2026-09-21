@@ -13,6 +13,7 @@ import { filter, map, of, switchMap, take } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { COLLECTIONS } from '../constants/collections';
 import { AppUser, UserRole, normalizeUserRole } from '../models';
+import { toAuthEmail } from '../utils/auth-login.util';
 
 @Injectable({
   providedIn: 'root',
@@ -63,9 +64,10 @@ export class AuthService {
       });
   }
 
-  async login(email: string, password: string): Promise<void> {
+  async login(identifier: string, password: string): Promise<void> {
     this.authError.set(null);
     try {
+      const email = toAuthEmail(identifier);
       const credential = await signInWithEmailAndPassword(this.auth, email, password);
       let profile = await this.loadUserProfile(credential.user);
       if (!profile) {
@@ -138,6 +140,7 @@ export class AuthService {
     return {
       uid: firebaseUser.uid,
       email: data.email,
+      username: data.username || undefined,
       displayName: data.displayName || firebaseUser.displayName || firebaseUser.email || '',
       role: normalizeUserRole(data.role),
       employeeId: data.employeeId,
@@ -164,7 +167,7 @@ export class AuthService {
       case 'auth/wrong-password':
       case 'auth/user-not-found':
       case 'auth/invalid-email':
-        return 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+        return 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
       case 'auth/too-many-requests':
         return 'พยายามเข้าสู่ระบบหลายครั้งเกินไป กรุณาลองใหม่ภายหลัง';
       case 'permission-denied':

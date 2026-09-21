@@ -25,7 +25,7 @@ export class LoginComponent {
   readonly errorMessage = signal<string | null>(null);
 
   readonly form = this.fb.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
+    identifier: ['', Validators.required],
     password: ['', [Validators.required, Validators.minLength(6)]],
   });
 
@@ -38,8 +38,8 @@ export class LoginComponent {
 
     this.submitting.set(true);
     try {
-      const { email, password } = this.form.getRawValue();
-      await this.authService.login(email, password);
+      const { identifier, password } = this.form.getRawValue();
+      await this.authService.login(identifier, password);
       await this.router.navigateByUrl(this.authService.homePath());
     } catch (error) {
       this.errorMessage.set(error instanceof Error ? error.message : 'เข้าสู่ระบบไม่สำเร็จ');

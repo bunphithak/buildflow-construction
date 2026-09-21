@@ -32,6 +32,7 @@ export function normalizeUserRole(role: unknown): UserRole {
 export interface AppUser {
   uid: string;
   email: string;
+  username?: string;
   displayName: string;
   role: UserRole;
   employeeId?: string;
@@ -42,7 +43,7 @@ export interface AppUser {
 }
 
 export interface UserWriteData {
-  email: string;
+  username: string;
   displayName: string;
   role: UserRole;
   employeeId?: string;
