@@ -58,6 +58,7 @@ export class PayrollDetailComponent implements OnInit {
   private readonly confirmDialog = inject(ConfirmDialogService);
 
   readonly loading = signal(true);
+  readonly saving = signal(false);
   readonly payroll = signal<Payroll | null>(null);
   readonly employee = signal<Employee | null>(null);
   readonly attendances = signal<Attendance[]>([]);
@@ -173,7 +174,7 @@ export class PayrollDetailComponent implements OnInit {
         this.selectedAdvanceIds(),
       );
       this.toast.success('บันทึกรายการเงินเบิกแล้ว');
-      await this.load(payroll.id);
+      await this.load(payroll.id, false);
     } catch (error) {
       this.toast.error(mapPayrollError(error));
     }
@@ -189,14 +190,18 @@ export class PayrollDetailComponent implements OnInit {
 
   async removeAdjustment(id: string): Promise<void> {
     const payroll = this.payroll();
-    if (!payroll) {
+    if (!payroll || this.saving()) {
       return;
     }
+    this.saving.set(true);
     try {
-      await this.payrollService.deleteAdjustment(id, payroll.id);
-      await this.load(payroll.id);
+      const next = await this.payrollService.deleteAdjustment(id, payroll.id);
+      this.adjustments.update((rows) => rows.filter((item) => item.id !== id));
+      this.payroll.set(next);
     } catch (error) {
       this.toast.error(mapPayrollError(error));
+    } finally {
+      this.saving.set(false);
     }
   }
 
@@ -217,7 +222,7 @@ export class PayrollDetailComponent implements OnInit {
     try {
       await this.payrollService.recalculate(payroll.id, true);
       this.toast.success('คำนวณใหม่แล้ว');
-      await this.load(payroll.id);
+      await this.load(payroll.id, false);
     } catch (error) {
       this.toast.error(mapPayrollError(error));
     }
@@ -248,7 +253,7 @@ export class PayrollDetailComponent implements OnInit {
       this.toast.success(
         this.negative() ? 'อนุมัติแล้ว และยกยอดติดลบไปรอหักรอบถัดไป' : 'อนุมัติ Payroll แล้ว',
       );
-      await this.load(payroll.id);
+      await this.load(payroll.id, false);
     } catch (error) {
       this.toast.error(mapPayrollError(error));
     }
@@ -269,7 +274,7 @@ export class PayrollDetailComponent implements OnInit {
     }
     try {
       await this.payrollService.unapprove(payroll.id);
-      await this.load(payroll.id);
+      await this.load(payroll.id, false);
     } catch (error) {
       this.toast.error(mapPayrollError(error));
     }
@@ -291,7 +296,7 @@ export class PayrollDetailComponent implements OnInit {
     try {
       await this.payrollService.markPaid(payroll.id);
       this.toast.success('บันทึกว่าจ่ายแล้ว');
-      await this.load(payroll.id);
+      await this.load(payroll.id, false);
     } catch (error) {
       this.toast.error(mapPayrollError(error));
     }
@@ -304,7 +309,7 @@ export class PayrollDetailComponent implements OnInit {
     }
     try {
       await this.payrollService.revertToDraft(payroll.id);
-      await this.load(payroll.id);
+      await this.load(payroll.id, false);
     } catch (error) {
       this.toast.error(mapPayrollError(error));
     }
@@ -315,15 +320,16 @@ export class PayrollDetailComponent implements OnInit {
     form: typeof this.incomeForm,
   ): Promise<void> {
     const payroll = this.payroll();
-    if (!payroll) {
+    if (!payroll || this.saving()) {
       return;
     }
     form.markAllAsTouched();
     if (form.invalid) {
       return;
     }
+    this.saving.set(true);
     try {
-      await this.payrollService.addAdjustment({
+      const result = await this.payrollService.addAdjustment({
         payrollId: payroll.id,
         employeeId: payroll.employeeId,
         type,
@@ -331,19 +337,28 @@ export class PayrollDetailComponent implements OnInit {
         description: form.controls.description.value,
         amount: Number(form.controls.amount.value),
       });
+      this.adjustments.update((rows) =>
+        rows.some((item) => item.id === result.adjustment.id)
+          ? rows
+          : [...rows, result.adjustment],
+      );
+      this.payroll.set(result.payroll);
       form.reset({
         category: type === 'INCOME' ? 'โบนัส' : 'หักอื่นๆ',
         description: '',
         amount: null,
       });
-      await this.load(payroll.id);
     } catch (error) {
       this.toast.error(mapPayrollError(error));
+    } finally {
+      this.saving.set(false);
     }
   }
 
-  private async load(id: string): Promise<void> {
-    this.loading.set(true);
+  private async load(id: string, initial = true): Promise<void> {
+    if (initial) {
+      this.loading.set(true);
+    }
     try {
       const payroll = await this.payrollService.getPayrollById(id);
       if (!payroll) {

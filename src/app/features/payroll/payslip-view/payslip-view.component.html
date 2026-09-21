@@ -11,59 +11,160 @@
       </div>
 
       <article class="payslip">
-        <header>
-          @if (companySettings.settings().logoUrl) {
-            <img [src]="companySettings.settings().logoUrl" alt="" class="logo" />
-          }
-          <div>
-            <h1>{{ companySettings.settings().companyName }}</h1>
-            <p>{{ companySettings.settings().address || '' }}</p>
-            <p>
-              @if (companySettings.settings().phone) {
-                โทร {{ companySettings.settings().phone }}
-              }
-              @if (companySettings.settings().taxId) {
-                · เลขผู้เสียภาษี {{ companySettings.settings().taxId }}
-              }
-            </p>
-          </div>
-        </header>
-        <h2>สลิปเงินเดือน / ค่าแรง</h2>
-        <p class="period">งวด {{ period(item) }}</p>
+        <table class="sheet">
+          <tr class="head-row">
+            <td class="brand">
+              <img [src]="logoSrc()" [alt]="companySettings.settings().companyName" class="logo" />
+            </td>
+            <td class="title-cell">
+              <h1>{{ titleTh(item) }}</h1>
+              <p class="en">{{ titleEn(item) }}</p>
+              <p class="mm">{{ titleMm(item) }}</p>
+            </td>
+            <td class="slip-no">
+              <span>เลขที่สลิป / Slip No. / ဝေစာအမှတ်</span>
+              <strong>{{ slipNo(item) }}</strong>
+            </td>
+          </tr>
+        </table>
 
-        <section class="meta">
-          <div><span>รหัส</span><strong>{{ employee.employeeCode }}</strong></div>
-          <div><span>ชื่อ-นามสกุล</span><strong>{{ employee.firstName }} {{ employee.lastName }}</strong></div>
-          <div><span>ตำแหน่ง</span><strong>{{ employee.position }}</strong></div>
-          <div><span>ประเภทการจ้าง</span><strong>{{ typeLabels[item.employmentTypeSnapshot] }}</strong></div>
-        </section>
+        <table class="sheet">
+          <tr class="meta-row">
+            <td>
+              <span>ชื่อพนักงาน / Employee Name / ဝန်ထမ်းအမည်</span>
+              <strong>{{ employeeName(employee) }}</strong>
+            </td>
+            <td>
+              <span>รหัสพนักงาน / Employee ID</span>
+              <strong>{{ employee.employeeCode }}</strong>
+            </td>
+            <td>
+              <span>ประจำงวด / For Period</span>
+              <strong>{{ period(item) }}</strong>
+            </td>
+            <td class="pay-date">
+              <span>วันที่จ่ายเงิน / Pay Date</span>
+              <strong>{{ payDate(item) }}</strong>
+            </td>
+          </tr>
+        </table>
 
-        <section class="cols">
-          <div>
-            <h3>รายได้</h3>
-            <div class="line"><span>เงินเดือน/ค่าแรง</span><strong>{{ amount(item.basePay) }}</strong></div>
-            <div class="line"><span>OT</span><strong>{{ amount(item.overtimePay) }}</strong></div>
-            @for (row of incomes(); track row.id) {
-              <div class="line"><span>{{ row.category }}</span><strong>{{ amount(row.amount) }}</strong></div>
-            }
-            <div class="line total"><span>รวมรายได้</span><strong>{{ amount(item.totalIncome) }}</strong></div>
-          </div>
-          <div>
-            <h3>รายการหัก</h3>
-            <div class="line"><span>เงินเบิกล่วงหน้า</span><strong>{{ amount(item.advanceDeduction) }}</strong></div>
-            @for (row of deductions(); track row.id) {
-              <div class="line"><span>{{ row.category }}</span><strong>{{ amount(row.amount) }}</strong></div>
-            }
-            <div class="line total"><span>รวมรายการหัก</span><strong>{{ amount(item.totalDeduction) }}</strong></div>
-          </div>
-        </section>
+        <table class="sheet split">
+          <tr>
+            <th class="wage-h">รายการค่าแรง / WAGE DETAILS / လုပ်ခအသေးစိတ်</th>
+            <th class="deduct-h">รายการหัก / DEDUCTIONS / ဖြတ်တောက်မှုများ</th>
+          </tr>
+          <tr>
+            <td class="pad0">
+              <table class="inner">
+                <tr>
+                  <td>จำนวนวันทำงาน / Working Days / အလုပ်လုပ်ရက်</td>
+                  <td class="num">{{ days(workingDays(item)) }}</td>
+                </tr>
+                <tr>
+                  <td>ค่าแรงต่อวัน / Daily Rate / နေ့စား</td>
+                  <td class="num">{{ amount(rate(item)) }}</td>
+                </tr>
+                <tr>
+                  <td>การคำนวณ / Calculation / တွက်ချက်မှု</td>
+                  <td class="num">{{ calculation(item) }}</td>
+                </tr>
+                @if (item.overtimePay) {
+                  <tr>
+                    <td>ค่าล่วงเวลา / Overtime</td>
+                    <td class="num">{{ amount(item.overtimePay) }}</td>
+                  </tr>
+                }
+                @for (row of incomes(); track row.id) {
+                  <tr>
+                    <td>{{ row.category }}</td>
+                    <td class="num">{{ amount(row.amount) }}</td>
+                  </tr>
+                }
+                <tr class="sub">
+                  <td>รวมค่าแรง / Total Wage / စုစုပေါင်းလုပ်ခ</td>
+                  <td class="num">{{ amount(item.totalIncome) }}</td>
+                </tr>
+              </table>
+            </td>
+            <td class="pad0 deduct-bg">
+              <table class="inner">
+                <tr>
+                  <td>ขาดงาน / Absent / အလုပ်ပျက်</td>
+                  <td class="num">{{ amount(absentAmount()) }}</td>
+                </tr>
+                <tr>
+                  <td>เงินร้านค้า / Store Credit / ဆိုင်ကြွေး</td>
+                  <td class="num">{{ amount(storeCredit()) }}</td>
+                </tr>
+                <tr>
+                  <td>เงินเบิก / Cash Advance / ကြိုထုတ်ငွေ</td>
+                  <td class="num">{{ amount(cashAdvance(item)) }}</td>
+                </tr>
+                <tr>
+                  <td>รายการหักอื่น / Other / အခြား</td>
+                  <td class="num">{{ amount(otherDeduction()) }}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr class="totals">
+            <td class="total-deduct">
+              รวมหัก / Total Deductions / စုစုပေါင်းဖြတ်
+              <strong>{{ amount(item.totalDeduction) }}</strong>
+            </td>
+            <td class="net">
+              รับเงินสุทธิ / NET PAY / လက်ခံငွေ
+              <strong>{{ amount(displayNet(item)) }}</strong>
+            </td>
+          </tr>
+        </table>
 
-        <p class="net">ยอดรับสุทธิ {{ amount(item.netPay) }} บาท</p>
+        <table class="sheet summary">
+          <tr>
+            <td>
+              <span>วันทำงาน / Working Days</span>
+              <strong>{{ days(workingDays(item)) }}</strong>
+            </td>
+            <td>
+              <span>ขาดงาน / Absent</span>
+              <strong>{{ days(item.totalAbsentDays) }}</strong>
+            </td>
+            <td>
+              <span>เงินร้านค้า / Store Credit</span>
+              <strong>{{ amount(storeCredit()) }}</strong>
+            </td>
+            <td>
+              <span>เงินเบิก / Cash Advance</span>
+              <strong>{{ amount(cashAdvance(item)) }}</strong>
+            </td>
+          </tr>
+        </table>
+
         @if (item.carriedForwardAmount) {
-          <p class="period">
+          <p class="carry">
             ยกยอดติดลบ {{ amount(item.carriedForwardAmount) }} บาท ไปรอหักรอบถัดไป · ยอดจ่ายงวดนี้ 0 บาท
           </p>
         }
+
+        <table class="sheet signs">
+          <tr>
+            <td>
+              <span>ลายมือชื่อพนักงาน / Employee Signature / ဝန်ထမ်းလက်မှတ်</span>
+              <div class="line"></div>
+              <em>วันที่ / Date ............................</em>
+            </td>
+            <td>
+              <span>ผู้จ่ายเงิน / Authorized Signature / ငွေထုတ်လက်မှတ်</span>
+              <div class="line"></div>
+              <em>วันที่ / Date ............................</em>
+            </td>
+            <td>
+              <span>หมายเหตุ / Note</span>
+              <p>{{ item.note || 'กรุณาตรวจสอบรายการก่อนลงชื่อ Please check before signing.' }}</p>
+            </td>
+          </tr>
+        </table>
       </article>
     }
   }

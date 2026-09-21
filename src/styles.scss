@@ -103,6 +103,11 @@ textarea {
   font-size: 0.95rem;
 }
 
+.icon-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .icon-btn:hover {
   background: #dbe7f8;
 }

@@ -44,6 +44,7 @@ export const INCOME_CATEGORIES: readonly string[] = [
 ];
 
 export const DEDUCTION_CATEGORIES: readonly string[] = [
+  'เงินร้านค้า',
   'เงินเบิก',
   'ขาดงาน',
   'หักอุปกรณ์',

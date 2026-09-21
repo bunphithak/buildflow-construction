@@ -110,7 +110,7 @@
               <span>{{ row.category }} · {{ row.description }}</span>
               <strong>{{ money(row.amount) }}</strong>
               @if (isAdmin() && !locked()) {
-                <button type="button" class="icon-btn danger" title="ลบ" aria-label="ลบ" (click)="removeAdjustment(row.id)">
+                <button type="button" class="icon-btn danger" title="ลบ" aria-label="ลบ" [disabled]="saving()" (click)="removeAdjustment(row.id)">
                   <i class="fa fa-trash" aria-hidden="true"></i>
                 </button>
               }
@@ -125,7 +125,7 @@
               </select>
               <input type="text" formControlName="description" placeholder="รายละเอียด" />
               <input type="number" min="0.01" step="0.01" formControlName="amount" placeholder="จำนวน" />
-              <button type="submit" class="btn btn-primary">+ เพิ่มรายการ</button>
+              <button type="submit" class="btn btn-primary" [disabled]="saving()">+ เพิ่มรายการ</button>
             </form>
           }
         </article>
@@ -136,7 +136,7 @@
               <span>{{ row.category }} · {{ row.description }}</span>
               <strong>{{ money(row.amount) }}</strong>
               @if (isAdmin() && !locked()) {
-                <button type="button" class="icon-btn danger" title="ลบ" aria-label="ลบ" (click)="removeAdjustment(row.id)">
+                <button type="button" class="icon-btn danger" title="ลบ" aria-label="ลบ" [disabled]="saving()" (click)="removeAdjustment(row.id)">
                   <i class="fa fa-trash" aria-hidden="true"></i>
                 </button>
               }
@@ -151,7 +151,7 @@
               </select>
               <input type="text" formControlName="description" placeholder="รายละเอียด" />
               <input type="number" min="0.01" step="0.01" formControlName="amount" placeholder="จำนวน" />
-              <button type="submit" class="btn btn-primary">+ เพิ่มรายการ</button>
+              <button type="submit" class="btn btn-primary" [disabled]="saving()">+ เพิ่มรายการ</button>
             </form>
           }
         </article>

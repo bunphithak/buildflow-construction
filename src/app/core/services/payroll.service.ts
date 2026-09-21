@@ -279,30 +279,49 @@ export class PayrollService {
     );
   }
 
-  async addAdjustment(data: PayrollAdjustmentWriteData): Promise<string> {
+  async addAdjustment(
+    data: PayrollAdjustmentWriteData,
+  ): Promise<{ adjustment: PayrollAdjustment; payroll: Payroll }> {
     await this.requireEditable(data.payrollId);
     if (!(data.amount > 0) || !data.description.trim()) {
       throw new Error('INVALID_ADJUSTMENT');
     }
     const ref = doc(this.adjustmentsRef);
-    await setDoc(ref, omitUndefined({
+    const adjustment: PayrollAdjustment = {
+      id: ref.id,
       payrollId: data.payrollId,
       employeeId: data.employeeId,
       type: data.type,
       category: data.category.trim(),
       description: data.description.trim(),
       amount: roundMoney(data.amount),
-      createdAt: serverTimestamp(),
-      createdBy: this.authService.currentUser()?.uid,
-    }));
-    await this.refreshTotals(data.payrollId);
-    return ref.id;
+    };
+    await setDoc(
+      ref,
+      omitUndefined({
+        payrollId: adjustment.payrollId,
+        employeeId: adjustment.employeeId,
+        type: adjustment.type,
+        category: adjustment.category,
+        description: adjustment.description,
+        amount: adjustment.amount,
+        createdAt: serverTimestamp(),
+        createdBy: this.authService.currentUser()?.uid,
+      }),
+    );
+    const existing = await this.getAdjustments(data.payrollId);
+    const adjustments = existing.some((item) => item.id === adjustment.id)
+      ? existing
+      : [...existing, adjustment];
+    const payroll = await this.refreshTotals(data.payrollId, adjustments);
+    return { adjustment, payroll };
   }
 
-  async deleteAdjustment(id: string, payrollId: string): Promise<void> {
+  async deleteAdjustment(id: string, payrollId: string): Promise<Payroll> {
     await this.requireEditable(payrollId);
     await deleteDoc(doc(this.firestore, COLLECTIONS.payrollAdjustments, id));
-    await this.refreshTotals(payrollId);
+    const remaining = (await this.getAdjustments(payrollId)).filter((item) => item.id !== id);
+    return this.refreshTotals(payrollId, remaining);
   }
 
   async approve(id: string): Promise<void> {
@@ -531,14 +550,17 @@ export class PayrollService {
     return status === 'APPROVED' || status === 'PAID' || status === 'CANCELLED';
   }
 
-  private async refreshTotals(payrollId: string): Promise<void> {
+  private async refreshTotals(
+    payrollId: string,
+    adjustments?: PayrollAdjustment[],
+  ): Promise<Payroll> {
     const payroll = await this.requireEditable(payrollId);
-    const adjustments = await this.getAdjustments(payrollId);
+    const rows = adjustments ?? (await this.getAdjustments(payrollId));
     const advances = await this.loadSelectedAdvances(payroll.selectedAdvanceIds);
     const totals = calculatePayrollTotals(
       payroll.basePay,
       payroll.overtimePay,
-      adjustments,
+      rows,
       this.sumAdvances(advances),
     );
     await updateDoc(
@@ -549,6 +571,7 @@ export class PayrollService {
         updatedBy: this.authService.currentUser()?.uid,
       }) as DocumentData,
     );
+    return { ...payroll, ...totals };
   }
 
   private async loadSelectedAdvances(ids: string[]): Promise<EmployeeAdvance[]> {
