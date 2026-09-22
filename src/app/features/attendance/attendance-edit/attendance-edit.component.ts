@@ -3,10 +3,11 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   ATTENDANCE_STATUS_LABELS,
-  ATTENDANCE_STATUSES,
   Attendance,
   AttendanceStatus,
   AttendanceWriteData,
+  attendanceEntryStatuses,
+  needsAttendanceClock,
 } from '../../../core/models';
 import { AttendanceService, combineWorkTime } from '../../../core/services/attendance.service';
 import { EmployeeService } from '../../../core/services/employee.service';
@@ -37,7 +38,10 @@ export class AttendanceEditComponent implements OnInit {
   readonly saving = signal(false);
   readonly original = signal<Attendance | null>(null);
   readonly statusLabels = ATTENDANCE_STATUS_LABELS;
-  readonly statuses = ATTENDANCE_STATUSES;
+
+  get statuses(): AttendanceStatus[] {
+    return attendanceEntryStatuses(this.form.controls.status.value);
+  }
   readonly jobs = this.jobService.jobs;
   readonly employees = this.employeeService.employees;
 
@@ -104,7 +108,7 @@ export class AttendanceEditComponent implements OnInit {
     }
     const value = this.form.getRawValue();
     if (
-      (value.status === 'PRESENT' || value.status === 'HALF_DAY') &&
+      needsAttendanceClock(value.status) &&
       value.clockIn &&
       value.clockOut &&
       value.clockOut <= value.clockIn

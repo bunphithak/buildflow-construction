@@ -3,7 +3,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
-import { Attendance, AttendanceLaborRow, Employee, EMPLOYMENT_TYPE_LABELS, Expense, Job, JOB_STATUS_LABELS, JOB_STATUSES, JobEmployee, JobStatus } from '../../../core/models';
+import { Attendance, AttendanceLaborRow, Employee, EMPLOYMENT_TYPE_LABELS, Expense, isHalfDayStatus, Job, JOB_STATUS_LABELS, JOB_STATUSES, JobEmployee, JobStatus } from '../../../core/models';
 import { AttendanceService, attendanceTimeLabel } from '../../../core/services/attendance.service';
 import { JobCostSummary } from '../../../core/models/cost.model';
 import { EmployeeService, formatEmployeeWage } from '../../../core/services/employee.service';
@@ -377,7 +377,7 @@ export class JobDetailComponent implements OnInit {
       current.recordCount += 1;
       if (row.status === 'PRESENT') {
         current.presentDays += 1;
-      } else if (row.status === 'HALF_DAY') {
+      } else if (isHalfDayStatus(row.status)) {
         current.presentDays += 0.5;
       }
       current.normalHours += row.normalHours;

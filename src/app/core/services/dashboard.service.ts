@@ -5,6 +5,7 @@ import {
   ChartSeries,
   DashboardSummary,
   Expense,
+  isHalfDayStatus,
   Job,
   JobCostSummary,
   UserRole,
@@ -155,7 +156,7 @@ export class DashboardService {
     for (const dayRows of grouped.values()) {
       if (dayRows.some((item) => item.status === 'PRESENT')) {
         counts.present += 1;
-      } else if (dayRows.some((item) => item.status === 'HALF_DAY')) {
+      } else if (dayRows.some((item) => isHalfDayStatus(item.status))) {
         counts.halfDay += 1;
       } else if (dayRows.some((item) => item.status === 'LEAVE')) {
         counts.leave += 1;

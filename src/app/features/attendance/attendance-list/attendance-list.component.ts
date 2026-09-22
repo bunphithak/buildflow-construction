@@ -6,6 +6,7 @@ import {
   AttendanceStatus,
   ATTENDANCE_STATUS_LABELS,
   ATTENDANCE_STATUSES,
+  isHalfDayStatus,
 } from '../../../core/models';
 import { AttendanceService, attendanceTimeLabel } from '../../../core/services/attendance.service';
 import { EmployeeService } from '../../../core/services/employee.service';
@@ -78,7 +79,7 @@ export class AttendanceListComponent implements OnInit {
       present: rows.filter((item) => item.status === 'PRESENT').length,
       absent: rows.filter((item) => item.status === 'ABSENT').length,
       leave: rows.filter((item) => item.status === 'LEAVE').length,
-      halfDay: rows.filter((item) => item.status === 'HALF_DAY').length,
+      halfDay: rows.filter((item) => isHalfDayStatus(item.status)).length,
       overtime: rows.reduce((sum, item) => sum + item.overtimeHours, 0),
       labor: rows.reduce((sum, item) => sum + item.totalLaborCost, 0),
     };

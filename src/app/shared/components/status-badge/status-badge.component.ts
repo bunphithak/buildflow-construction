@@ -59,6 +59,8 @@ export class StatusBadgeComponent {
         case 'PRESENT':
           return 'success';
         case 'HALF_DAY':
+        case 'HALF_DAY_MORNING':
+        case 'HALF_DAY_AFTERNOON':
           return 'info';
         case 'LEAVE':
         case 'HOLIDAY':

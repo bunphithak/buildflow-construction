@@ -164,7 +164,9 @@ export class PayrollService {
         netPay: totals.netPay,
       });
     }
-    return previews;
+    return previews.sort((a, b) =>
+      a.employee.employeeCode.localeCompare(b.employee.employeeCode, 'th', { numeric: true }),
+    );
   }
 
   payrollDateRange(payroll: Payroll): { start: Date; end: Date } {

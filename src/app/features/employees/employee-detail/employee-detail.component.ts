@@ -1,7 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Attendance, Employee, EmployeeAdvance, EMPLOYMENT_TYPE_LABELS, genderLabel, nationalityLabel, Payroll } from '../../../core/models';
+import { Attendance, Employee, EmployeeAdvance, EMPLOYMENT_TYPE_LABELS, genderLabel, isWorkedAttendanceStatus, nationalityLabel, Payroll } from '../../../core/models';
 import { AttendanceService, attendanceTimeLabel } from '../../../core/services/attendance.service';
 import { AdvanceService } from '../../../core/services/advance.service';
 import { PayrollService } from '../../../core/services/payroll.service';
@@ -89,7 +89,7 @@ export class EmployeeDetailComponent implements OnInit {
     const rows = this.filteredAttendances();
     const jobIds = new Set(rows.map((item) => item.jobId));
     return {
-      workDays: rows.filter((item) => item.status === 'PRESENT' || item.status === 'HALF_DAY').length,
+      workDays: rows.filter((item) => isWorkedAttendanceStatus(item.status)).length,
       jobCount: jobIds.size,
       overtime: rows.reduce((sum, item) => sum + item.overtimeHours, 0),
       labor: rows.reduce((sum, item) => sum + item.totalLaborCost, 0),

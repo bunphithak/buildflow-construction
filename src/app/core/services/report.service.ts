@@ -12,7 +12,7 @@ import {
   Payroll,
   PayrollReportRow,
 } from '../models';
-import { Attendance, ATTENDANCE_STATUS_LABELS } from '../models/attendance.model';
+import { Attendance, ATTENDANCE_STATUS_LABELS, isWorkedAttendanceStatus } from '../models/attendance.model';
 import { PAYROLL_STATUS_LABELS } from '../models/payroll.model';
 import { bangkokDateKey, roundMoney } from '../utils/datetime.util';
 import { DateRange } from '../utils/date-range.util';
@@ -73,7 +73,7 @@ export class ReportService {
       });
     const uniqueDays = new Set(
       rows
-        .filter((item) => item.status === 'PRESENT' || item.status === 'HALF_DAY')
+        .filter((item) => isWorkedAttendanceStatus(item.status))
         .map((item) => `${item.employeeId}:${bangkokDateKey(item.workDate.toDate())}`),
     );
     return {
@@ -95,7 +95,7 @@ export class ReportService {
       const uniqueEmployees = new Set(items.map((item) => item.employeeId));
       const uniqueDays = new Set(
         items
-          .filter((item) => item.status === 'PRESENT' || item.status === 'HALF_DAY')
+          .filter((item) => isWorkedAttendanceStatus(item.status))
           .map((item) => `${item.employeeId}:${bangkokDateKey(item.workDate.toDate())}`),
       );
       return {

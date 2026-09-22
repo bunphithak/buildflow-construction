@@ -21,6 +21,9 @@ import {
   AttendanceLaborRow,
   AttendanceStatus,
   AttendanceWriteData,
+  isHalfDayStatus,
+  isWorkedAttendanceStatus,
+  needsAttendanceClock,
 } from '../models';
 import { AuthService } from '../auth/auth.service';
 import {
@@ -262,7 +265,7 @@ export class AttendanceService {
     excludeId: string | undefined,
     dayRows: Attendance[],
   ): void {
-    const needsTime = data.status === 'PRESENT' || data.status === 'HALF_DAY';
+    const needsTime = needsAttendanceClock(data.status);
     if (needsTime && data.clockIn && data.clockOut && data.clockOut.getTime() <= data.clockIn.getTime()) {
       throw new Error(`เวลาออกงานต้องมากกว่าเวลาเข้างาน`);
     }
@@ -369,8 +372,8 @@ export class AttendanceService {
         totalLaborCost: 0,
       };
       current.recordCount += 1;
-      if (row.status === 'PRESENT' || row.status === 'HALF_DAY') {
-        current.presentDays += row.status === 'HALF_DAY' ? 0.5 : 1;
+      if (isWorkedAttendanceStatus(row.status)) {
+        current.presentDays += isHalfDayStatus(row.status) ? 0.5 : 1;
       }
       current.normalHours += row.normalHours;
       current.overtimeHours += row.overtimeHours;
@@ -422,7 +425,15 @@ export class AttendanceService {
   }
 
   private mapStatus(value: unknown): AttendanceStatus {
-    const statuses: AttendanceStatus[] = ['PRESENT', 'ABSENT', 'LEAVE', 'HOLIDAY', 'HALF_DAY'];
+    const statuses: AttendanceStatus[] = [
+      'PRESENT',
+      'ABSENT',
+      'LEAVE',
+      'HOLIDAY',
+      'HALF_DAY',
+      'HALF_DAY_MORNING',
+      'HALF_DAY_AFTERNOON',
+    ];
     return statuses.includes(value as AttendanceStatus) ? (value as AttendanceStatus) : 'ABSENT';
   }
 }

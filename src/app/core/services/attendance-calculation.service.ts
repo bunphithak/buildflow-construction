@@ -54,6 +54,8 @@ export class AttendanceCalculationService {
       case 'PRESENT':
         return presentCost;
       case 'HALF_DAY':
+      case 'HALF_DAY_MORNING':
+      case 'HALF_DAY_AFTERNOON':
         return roundMoney(presentCost * 0.5);
       case 'HOLIDAY':
         return settings.paidHolidayEnabled ? presentCost : 0;

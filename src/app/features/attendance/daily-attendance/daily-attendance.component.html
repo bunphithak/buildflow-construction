@@ -31,6 +31,8 @@
     </label>
     <div class="bulk">
       <button type="button" class="btn btn-ghost" (click)="applyStatus('PRESENT')">มาทำงานทั้งหมด</button>
+      <button type="button" class="btn btn-ghost" (click)="applyStatus('HALF_DAY_MORNING')">ครึ่งวันเช้า</button>
+      <button type="button" class="btn btn-ghost" (click)="applyStatus('HALF_DAY_AFTERNOON')">ครึ่งวันบ่าย</button>
       <button type="button" class="btn btn-ghost" (click)="applyStatus('ABSENT')">ขาดงาน</button>
       <button type="button" class="btn btn-ghost" (click)="applyStatus('LEAVE')">ลางาน</button>
       <button type="button" class="btn btn-ghost" (click)="applyStatus('HOLIDAY')">วันหยุด</button>
@@ -96,7 +98,7 @@
                   [ngModel]="row.status"
                   (ngModelChange)="onStatusChange(i, $event)"
                 >
-                  @for (status of statuses; track status) {
+                  @for (status of rowStatuses(row.status); track status) {
                     <option [value]="status">{{ statusLabels[status] }}</option>
                   }
                 </select>
@@ -184,7 +186,7 @@
             [ngModel]="row.status"
             (ngModelChange)="onStatusChange(i, $event)"
           >
-            @for (status of statuses; track status) {
+            @for (status of rowStatuses(row.status); track status) {
               <option [value]="status">{{ statusLabels[status] }}</option>
             }
           </select>

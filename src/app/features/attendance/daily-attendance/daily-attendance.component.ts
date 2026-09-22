@@ -5,10 +5,13 @@ import {
   Attendance,
   AttendanceStatus,
   ATTENDANCE_STATUS_LABELS,
-  ATTENDANCE_STATUSES,
   AttendanceWriteData,
+  attendanceEntryStatuses,
+  clockTimesForStatus,
   Employee,
   Job,
+  needsAttendanceClock,
+  otherJobAttendanceState,
 } from '../../../core/models';
 import { AttendanceSettingsService } from '../../../core/services/attendance-settings.service';
 import { AttendanceService, combineWorkTime } from '../../../core/services/attendance.service';
@@ -71,7 +74,6 @@ export class DailyAttendanceComponent {
   private readonly toast = inject(ToastService);
 
   readonly statusLabels = ATTENDANCE_STATUS_LABELS;
-  readonly statuses = ATTENDANCE_STATUSES;
   readonly settings = this.settingsService.settings;
 
   readonly workDate = signal(toDateInputValue(new Date()));
@@ -124,6 +126,10 @@ export class DailyAttendanceComponent {
     return this.jobService.jobs().find((job) => job.id === this.jobId());
   }
 
+  rowStatuses(status: AttendanceStatus): AttendanceStatus[] {
+    return attendanceEntryStatuses(status);
+  }
+
   toggleAll(checked: boolean): void {
     this.rows.update((rows) =>
       rows.map((row) => (row.lockedByOtherJob ? row : { ...row, selected: checked })),
@@ -136,7 +142,8 @@ export class DailyAttendanceComponent {
   }
 
   onStatusChange(index: number, status: string): void {
-    this.updateRow(index, { status: status as AttendanceStatus });
+    const next = status as AttendanceStatus;
+    this.updateRow(index, { status: next, ...this.timesFor(next) });
   }
 
   updateRow(index: number, patch: Partial<DailyRow>): void {
@@ -151,9 +158,12 @@ export class DailyAttendanceComponent {
   }
 
   applyStatus(status: AttendanceStatus): void {
+    const times = this.timesFor(status);
     this.rows.update((rows) =>
       rows.map((row) =>
-        row.selected && !row.lockedByOtherJob ? { ...row, status, error: undefined } : row,
+        row.selected && !row.lockedByOtherJob
+          ? { ...row, status, ...times, error: undefined }
+          : row,
       ),
     );
   }
@@ -243,7 +253,7 @@ export class DailyAttendanceComponent {
         this.setRowError(nextRows, row.employeeId, 'ไม่สามารถสร้างรายการใหม่ให้พนักงานที่ปิดใช้งาน');
         continue;
       }
-      const needsTime = row.status === 'PRESENT' || row.status === 'HALF_DAY';
+      const needsTime = needsAttendanceClock(row.status);
       if (needsTime && row.clockIn && row.clockOut && row.clockOut <= row.clockIn) {
         hasError = true;
         this.setRowError(nextRows, row.employeeId, 'เวลาออกงานต้องมากกว่าเวลาเข้างาน');
@@ -307,14 +317,34 @@ export class DailyAttendanceComponent {
     }
   }
 
+  private timesFor(status: AttendanceStatus): {
+    clockIn: string;
+    clockOut: string;
+    breakMinutes: number;
+  } {
+    return (
+      clockTimesForStatus(status, {
+        clockIn: this.defaultClockIn(),
+        clockOut: this.defaultClockOut(),
+        breakMinutes: Number(this.defaultBreakMinutes() || 0),
+      }) ?? {
+        clockIn: this.defaultClockIn(),
+        clockOut: this.defaultClockOut(),
+        breakMinutes: Number(this.defaultBreakMinutes() || 0),
+      }
+    );
+  }
+
   private toRow(
     employee: Employee,
     attendance: Attendance | undefined,
     otherAttendances: Attendance[],
   ): DailyRow {
-    const settings = this.settings();
-    const lockedByOtherJob = !attendance && otherAttendances.length > 0;
-    const display = attendance ?? otherAttendances[0];
+    const otherState = otherJobAttendanceState(otherAttendances);
+    const lockedByOtherJob = !attendance && otherState.locked;
+    const display = attendance ?? (lockedByOtherJob ? otherAttendances[0] : undefined);
+    const status = display?.status ?? otherState.suggestedStatus ?? 'PRESENT';
+    const times = this.timesFor(status);
     return {
       selected: !lockedByOtherJob,
       lockedByOtherJob,
@@ -328,14 +358,14 @@ export class DailyAttendanceComponent {
       position: employee.position,
       employmentType: employee.employmentType,
       employeeActive: employee.status === 'ACTIVE',
-      status: display?.status ?? 'PRESENT',
+      status,
       clockIn: display?.clockIn
         ? formatBangkokTime(display.clockIn.toDate())
-        : settings.defaultClockIn,
+        : times.clockIn,
       clockOut: display?.clockOut
         ? formatBangkokTime(display.clockOut.toDate())
-        : settings.defaultClockOut,
-      breakMinutes: display?.breakMinutes ?? settings.defaultBreakMinutes,
+        : times.clockOut,
+      breakMinutes: display?.breakMinutes ?? times.breakMinutes,
       overtimeHours: display?.overtimeHours ?? 0,
       note: display?.note ?? '',
       employmentTypeSnapshot: display?.employmentTypeSnapshot ?? employee.employmentType,

@@ -1,4 +1,4 @@
-import { Attendance, Employee, Payroll, PayrollAdjustment, PayrollAttendanceSummary, PayrollTotals } from '../models';
+import { Attendance, Employee, isWorkedAttendanceStatus, Payroll, PayrollAdjustment, PayrollAttendanceSummary, PayrollTotals } from '../models';
 import {
   bangkokDateKey,
   daysInBangkokMonth,
@@ -7,8 +7,6 @@ import {
   inclusiveCalendarDays,
   roundMoney,
 } from './datetime.util';
-
-const FULL_DAY_HOURS = 7;
 
 export type PayrollDayKind = 'FULL' | 'HALF' | 'ABSENT' | 'LEAVE' | 'HOLIDAY' | 'NONE';
 
@@ -29,13 +27,14 @@ export function snapshotEmployeeRates(employee: Employee): PayrollRateSnapshot {
 }
 
 export function classifyCalendarDay(records: Attendance[]): PayrollDayKind {
-  const work = records.filter((item) => item.status === 'PRESENT' || item.status === 'HALF_DAY');
+  const work = records.filter((item) => isWorkedAttendanceStatus(item.status));
   if (work.length > 0) {
     if (work.some((item) => item.status === 'PRESENT')) {
       return 'FULL';
     }
-    const hours = work.reduce((sum, item) => sum + item.normalHours, 0);
-    if (work.length > 1 || hours >= FULL_DAY_HOURS) {
+    const hasMorning = work.some((item) => item.status === 'HALF_DAY_MORNING');
+    const hasAfternoon = work.some((item) => item.status === 'HALF_DAY_AFTERNOON');
+    if (hasMorning && hasAfternoon) {
       return 'FULL';
     }
     return 'HALF';
