@@ -8,21 +8,18 @@ import {
   ATTENDANCE_STATUSES,
   AttendanceWriteData,
   Employee,
-  EMPLOYMENT_TYPE_LABELS,
   Job,
 } from '../../../core/models';
-import { AttendanceCalculationService } from '../../../core/services/attendance-calculation.service';
 import { AttendanceSettingsService } from '../../../core/services/attendance-settings.service';
 import { AttendanceService, combineWorkTime } from '../../../core/services/attendance.service';
-import { EmployeeService, formatEmployeeWage } from '../../../core/services/employee.service';
+import { EmployeeService } from '../../../core/services/employee.service';
 import { JobEmployeeService } from '../../../core/services/job-employee.service';
 import { JobService } from '../../../core/services/job.service';
 import { formatBangkokTime } from '../../../core/utils/datetime.util';
-import { formatBaht, toDateInputValue } from '../../../core/utils/form.util';
+import { toDateInputValue } from '../../../core/utils/form.util';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
-import { StatusBadgeComponent } from '../../../shared/components/status-badge/status-badge.component';
 import { ThaiDatePipe } from '../../../shared/pipes/thai-date.pipe';
 import { ToastService } from '../../../shared/services/toast.service';
 
@@ -57,7 +54,6 @@ interface DailyRow {
     PageHeaderComponent,
     EmptyStateComponent,
     LoadingStateComponent,
-    StatusBadgeComponent,
     ThaiDatePipe,
   ],
   templateUrl: './daily-attendance.component.html',
@@ -69,13 +65,11 @@ export class DailyAttendanceComponent {
   private readonly jobEmployeeService = inject(JobEmployeeService);
   private readonly employeeService = inject(EmployeeService);
   private readonly attendanceService = inject(AttendanceService);
-  private readonly calculation = inject(AttendanceCalculationService);
   private readonly settingsService = inject(AttendanceSettingsService);
   private readonly toast = inject(ToastService);
 
   readonly statusLabels = ATTENDANCE_STATUS_LABELS;
   readonly statuses = ATTENDANCE_STATUSES;
-  readonly typeLabels = EMPLOYMENT_TYPE_LABELS;
   readonly settings = this.settingsService.settings;
 
   readonly workDate = signal(toDateInputValue(new Date()));
@@ -106,25 +100,6 @@ export class DailyAttendanceComponent {
 
   selectedJob(): Job | undefined {
     return this.jobService.jobs().find((job) => job.id === this.jobId());
-  }
-
-  wage(employee: Pick<Employee, 'employmentType' | 'dailyRate' | 'monthlySalary'>): string {
-    return formatEmployeeWage(employee);
-  }
-
-  laborCost(row: DailyRow): number {
-    return this.calculation.calculate({
-      status: row.status,
-      employmentTypeSnapshot: row.employmentTypeSnapshot,
-      dailyRateSnapshot: row.dailyRateSnapshot,
-      monthlySalarySnapshot: row.monthlySalarySnapshot,
-      overtimeRateSnapshot: row.overtimeRateSnapshot,
-      overtimeHours: Number(row.overtimeHours || 0),
-    }).totalLaborCost;
-  }
-
-  money(value: number): string {
-    return formatBaht(value);
   }
 
   toggleAll(checked: boolean): void {
