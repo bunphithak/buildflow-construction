@@ -31,6 +31,7 @@ import { AttendanceService } from './attendance.service';
 import { AdvanceService } from './advance.service';
 import { EmployeeService } from './employee.service';
 import { PayrollCalculationService } from './payroll-calculation.service';
+import { BusyService } from './busy.service';
 import { bangkokDateKey, monthRangeBangkok, payrollPeriodKey, roundMoney, startOfDayBangkok } from '../utils/datetime.util';
 import { omitUndefined } from '../utils/form.util';
 import {
@@ -52,8 +53,26 @@ export class PayrollService {
   private readonly advanceService = inject(AdvanceService);
   private readonly employeeService = inject(EmployeeService);
   private readonly calculation = inject(PayrollCalculationService);
+  private readonly busy = inject(BusyService);
   private readonly payrollsRef = collection(this.firestore, COLLECTIONS.payrolls);
   private readonly adjustmentsRef = collection(this.firestore, COLLECTIONS.payrollAdjustments);
+
+  constructor() {
+    this.busy.guard(this, [
+      'generateForPeriod',
+      'recalculate',
+      'revertToDraft',
+      'updateNoteAndAdvances',
+      'addAdjustment',
+      'deleteAdjustment',
+      'approve',
+      'unapprove',
+      'markPaid',
+      'cancel',
+      'bulkRecalculate',
+      'bulkApprove',
+    ]);
+  }
 
   async getPayrollsByPeriod(year: number, month: number): Promise<Payroll[]> {
     const snapshot = await getDocs(

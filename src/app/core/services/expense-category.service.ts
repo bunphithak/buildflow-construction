@@ -21,6 +21,7 @@ import {
   ExpenseCategoryStatus,
 } from '../models';
 import { omitUndefined } from '../utils/form.util';
+import { BusyService } from './busy.service';
 
 @Injectable({
   providedIn: 'root',
@@ -29,6 +30,7 @@ export class ExpenseCategoryService {
   private readonly firestore = inject(Firestore);
   private readonly categoriesRef = collection(this.firestore, COLLECTIONS.expenseCategories);
   private readonly expensesRef = collection(this.firestore, COLLECTIONS.expenses);
+  private readonly busy = inject(BusyService);
   private seeding = false;
 
   readonly categories = signal<ExpenseCategory[]>([]);
@@ -60,6 +62,7 @@ export class ExpenseCategoryService {
           this.loading.set(false);
         },
       });
+    this.busy.guard(this, ['createCategory', 'updateCategory', 'changeCategoryStatus']);
   }
 
   getCategories(): ExpenseCategory[] {

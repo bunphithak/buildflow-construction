@@ -17,6 +17,7 @@ import { DocumentData } from 'firebase/firestore';
 import { map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../auth/auth.service';
+import { BusyService } from './busy.service';
 import { COLLECTIONS } from '../constants/collections';
 import { AppUser, UserWriteData, normalizeAssignedJobIds, normalizeUserRole } from '../models';
 import { omitUndefined } from '../utils/form.util';
@@ -43,6 +44,7 @@ export class UserService {
   private readonly auth = inject(Auth);
   private readonly functions = inject(Functions);
   private readonly authService = inject(AuthService);
+  private readonly busy = inject(BusyService);
   private readonly usersRef = collection(this.firestore, COLLECTIONS.users);
 
   readonly users = signal<AppUser[]>([]);
@@ -71,6 +73,7 @@ export class UserService {
           this.loading.set(false);
         },
       });
+    this.busy.guard(this, ['createUser', 'updateUser', 'setUserPassword', 'sendResetPassword']);
   }
 
   getUserById(uid: string): AppUser | undefined {

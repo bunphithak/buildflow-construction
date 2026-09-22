@@ -15,6 +15,7 @@ import { environment } from '../../../environments/environment';
 import { COLLECTIONS } from '../constants/collections';
 import { AppUser, UserRole, normalizeAssignedJobIds, normalizeUserRole } from '../models';
 import { isEmailIdentifier, toAuthEmail } from '../utils/auth-login.util';
+import { BusyService } from '../services/busy.service';
 
 @Injectable({
   providedIn: 'root',
@@ -23,6 +24,7 @@ export class AuthService {
   private readonly auth = inject(Auth);
   private readonly firestore = inject(Firestore);
   private readonly functions = inject(Functions);
+  private readonly busy = inject(BusyService);
 
   readonly firebaseUser = signal<User | null>(null);
   readonly currentUser = signal<AppUser | null>(null);
@@ -64,6 +66,7 @@ export class AuthService {
           this.initializing.set(false);
         },
       });
+    this.busy.guard(this, ['login']);
   }
 
   async login(identifier: string, password: string): Promise<void> {

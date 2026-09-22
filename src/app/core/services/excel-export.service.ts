@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import ExcelJS from 'exceljs';
 import {
   AttendanceReport,
@@ -8,11 +8,23 @@ import {
   LaborReportRow,
   PayrollReportRow,
 } from '../models';
+import { BusyService } from './busy.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ExcelExportService {
+  private readonly busy = inject(BusyService);
+
+  constructor() {
+    this.busy.guard(this, [
+      'exportAttendance',
+      'exportLabor',
+      'exportExpense',
+      'exportJobCost',
+      'exportPayroll',
+    ]);
+  }
   async exportAttendance(report: AttendanceReport, filename = 'Attendance.xlsx'): Promise<void> {
     await this.download(
       filename,

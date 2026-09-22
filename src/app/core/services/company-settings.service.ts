@@ -6,6 +6,7 @@ import { COLLECTIONS } from '../constants/collections';
 import { CompanySettings } from '../models';
 import { environment } from '../../../environments/environment';
 import { omitUndefined } from '../utils/form.util';
+import { BusyService } from './busy.service';
 
 const COMPANY_DOC = 'company';
 
@@ -21,6 +22,7 @@ const DEFAULT_COMPANY: CompanySettings = {
 export class CompanySettingsService {
   private readonly firestore = inject(Firestore);
   private readonly docRef = doc(this.firestore, COLLECTIONS.settings, COMPANY_DOC);
+  private readonly busy = inject(BusyService);
 
   readonly settings = signal<CompanySettings>(DEFAULT_COMPANY);
   readonly loading = signal(true);
@@ -36,6 +38,7 @@ export class CompanySettingsService {
         this.loading.set(false);
       },
     });
+    this.busy.guard(this, ['save']);
   }
 
   async save(data: CompanySettings): Promise<void> {

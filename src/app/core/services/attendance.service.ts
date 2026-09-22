@@ -26,6 +26,7 @@ import {
   needsAttendanceClock,
 } from '../models';
 import { AuthService } from '../auth/auth.service';
+import { BusyService } from './busy.service';
 import {
   combineBangkokDateAndTime,
   formatBangkokTime,
@@ -45,7 +46,17 @@ export class AttendanceService {
   private readonly firestore = inject(Firestore);
   private readonly authService = inject(AuthService);
   private readonly calculation = inject(AttendanceCalculationService);
+  private readonly busy = inject(BusyService);
   private readonly attendancesRef = collection(this.firestore, COLLECTIONS.attendances);
+
+  constructor() {
+    this.busy.guard(this, [
+      'createAttendance',
+      'updateAttendance',
+      'saveDailyAttendance',
+      'deleteAttendance',
+    ]);
+  }
 
   async getAttendances(): Promise<Attendance[]> {
     const snapshot = await getDocs(this.attendancesRef);

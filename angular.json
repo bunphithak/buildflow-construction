@@ -30,6 +30,7 @@
               "src/assets"
             ],
             "styles": [
+              "node_modules/ngx-spinner/animations/ball-clip-rotate.css",
               "src/styles.scss"
             ],
             "scripts": [],
@@ -128,6 +129,7 @@
               "src/assets"
             ],
             "styles": [
+              "node_modules/ngx-spinner/animations/ball-clip-rotate.css",
               "src/styles.scss"
             ],
             "scripts": []

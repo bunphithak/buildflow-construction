@@ -120,6 +120,67 @@ textarea {
   background: var(--color-danger-soft);
 }
 
+.hash-loader {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  transform: rotate(165deg);
+}
+
+.hash-loader span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 100%;
+}
+
+.hash-loader span:first-child {
+  animation: hash-loader-a 0.8s infinite ease;
+}
+
+.hash-loader span:last-child {
+  animation: hash-loader-b 0.8s infinite ease;
+}
+
+@keyframes hash-loader-a {
+  0% {
+    box-shadow: -22px -24px 0 #5eead4;
+  }
+  25% {
+    box-shadow: 22px -24px 0 #5eead4;
+  }
+  50% {
+    box-shadow: 22px 24px 0 #5eead4;
+  }
+  75% {
+    box-shadow: -22px 24px 0 #5eead4;
+  }
+  100% {
+    box-shadow: -22px -24px 0 #5eead4;
+  }
+}
+
+@keyframes hash-loader-b {
+  0% {
+    box-shadow: 22px 24px 0 #2dd4bf;
+  }
+  25% {
+    box-shadow: -22px 24px 0 #2dd4bf;
+  }
+  50% {
+    box-shadow: -22px -24px 0 #2dd4bf;
+  }
+  75% {
+    box-shadow: 22px -24px 0 #2dd4bf;
+  }
+  100% {
+    box-shadow: 22px 24px 0 #2dd4bf;
+  }
+}
+
 @media print {
   .no-print {
     display: none !important;

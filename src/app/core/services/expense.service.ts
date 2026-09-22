@@ -30,6 +30,7 @@ import { canCreateJobExpense } from '../utils/expense.util';
 import { omitUndefined } from '../utils/form.util';
 import { ExpenseCategoryService } from './expense-category.service';
 import { JobService } from './job.service';
+import { BusyService } from './busy.service';
 
 const MAX_RECEIPT_BYTES = 10 * 1024 * 1024;
 const ALLOWED_RECEIPT_TYPES = [
@@ -56,7 +57,12 @@ export class ExpenseService {
   private readonly authService = inject(AuthService);
   private readonly categoryService = inject(ExpenseCategoryService);
   private readonly jobService = inject(JobService);
+  private readonly busy = inject(BusyService);
   private readonly expensesRef = collection(this.firestore, COLLECTIONS.expenses);
+
+  constructor() {
+    this.busy.guard(this, ['createExpense', 'updateExpense', 'deleteExpense', 'removeReceipt']);
+  }
 
   async getExpenses(): Promise<Expense[]> {
     const snapshot = await getDocs(this.expensesRef);

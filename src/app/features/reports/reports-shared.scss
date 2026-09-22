@@ -62,6 +62,62 @@ table {
   }
 }
 
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+
+  p {
+    margin: 0;
+    color: var(--color-muted);
+    font-weight: 600;
+  }
+}
+
+.page-size {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+
+  select {
+    width: auto;
+    min-width: 4.5rem;
+  }
+}
+
+.pager-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.page-btn {
+  min-width: 2.4rem;
+  height: 2.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.7rem;
+  background: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.page-btn.active {
+  background: var(--color-sidebar);
+  color: #fff;
+  border-color: var(--color-sidebar);
+}
+
+.ellipsis {
+  color: var(--color-muted);
+  padding: 0 0.2rem;
+}
+
 @media (max-width: 960px) {
   .filters,
   .stats {

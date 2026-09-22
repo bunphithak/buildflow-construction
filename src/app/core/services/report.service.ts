@@ -23,6 +23,7 @@ import { ExpenseService } from './expense.service';
 import { JobCostService } from './job-cost.service';
 import { JobService } from './job.service';
 import { PayrollService } from './payroll.service';
+import { BusyService } from './busy.service';
 
 export interface AttendanceReportFilter {
   range: DateRange;
@@ -42,6 +43,18 @@ export class ReportService {
   private readonly jobCostService = inject(JobCostService);
   private readonly payrollService = inject(PayrollService);
   private readonly categoryService = inject(ExpenseCategoryService);
+  private readonly busy = inject(BusyService);
+
+  constructor() {
+    this.busy.guard(this, [
+      'generateAttendanceReport',
+      'generateLaborReport',
+      'generateExpenseReport',
+      'generateJobCostReport',
+      'generatePayrollReport',
+      'generateExecutiveReport',
+    ]);
+  }
 
   async generateAttendanceReport(filter: AttendanceReportFilter): Promise<AttendanceReport> {
     let rows = filter.jobId

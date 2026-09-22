@@ -11,12 +11,24 @@ import {
   PayrollReportRow,
 } from '../models';
 import { CompanySettingsService } from './company-settings.service';
+import { BusyService } from './busy.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class PdfExportService {
   private readonly companySettings = inject(CompanySettingsService);
+  private readonly busy = inject(BusyService);
+
+  constructor() {
+    this.busy.guard(this, [
+      'exportAttendance',
+      'exportExpense',
+      'exportJobCost',
+      'exportPayroll',
+      'exportExecutive',
+    ]);
+  }
 
   async exportAttendance(
     report: AttendanceReport,

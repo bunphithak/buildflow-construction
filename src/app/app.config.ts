@@ -1,9 +1,9 @@
 import { registerLocaleData } from '@angular/common';
-import { LOCALE_ID } from '@angular/core';
 import localeTh from '@angular/common/locales/th';
-import { ApplicationConfig } from '@angular/core';
+import { ApplicationConfig, importProvidersFrom, LOCALE_ID } from '@angular/core';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
+import { NgxSpinnerModule } from 'ngx-spinner';
 import { initializeApp, provideFirebaseApp } from '@angular/fire/app';
 import { getAuth, provideAuth } from '@angular/fire/auth';
 import { getFirestore, provideFirestore } from '@angular/fire/firestore';
@@ -19,6 +19,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes),
     provideAnimations(),
+    importProvidersFrom(NgxSpinnerModule.forRoot({ type: 'ball-clip-rotate' })),
     { provide: LOCALE_ID, useValue: 'th-TH' },
     provideFirebaseApp(() => initializeApp(environment.firebase)),
     provideAuth(() => getAuth()),

@@ -19,6 +19,7 @@ import { AuthService } from '../auth/auth.service';
 import { AdvanceStatus, EmployeeAdvance, EmployeeAdvanceWriteData } from '../models';
 import { omitUndefined } from '../utils/form.util';
 import { startOfDayBangkok } from '../utils/datetime.util';
+import { BusyService } from './busy.service';
 
 @Injectable({
   providedIn: 'root',
@@ -27,6 +28,11 @@ export class AdvanceService {
   private readonly firestore = inject(Firestore);
   private readonly authService = inject(AuthService);
   private readonly advancesRef = collection(this.firestore, COLLECTIONS.employeeAdvances);
+  private readonly busy = inject(BusyService);
+
+  constructor() {
+    this.busy.guard(this, ['createAdvance', 'updateAdvance', 'cancelAdvance', 'deleteAdvance']);
+  }
 
   async getAdvances(): Promise<EmployeeAdvance[]> {
     const snapshot = await getDocs(this.advancesRef);

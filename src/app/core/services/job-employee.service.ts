@@ -22,6 +22,7 @@ import { AuthService } from '../auth/auth.service';
 import { JobAssignmentStatus, JobEmployee } from '../models';
 import { canAssignEmployeesToJob } from '../utils/job-status.util';
 import { JobService } from './job.service';
+import { BusyService } from './busy.service';
 
 @Injectable({
   providedIn: 'root',
@@ -30,6 +31,7 @@ export class JobEmployeeService {
   private readonly firestore = inject(Firestore);
   private readonly jobService = inject(JobService);
   private readonly authService = inject(AuthService);
+  private readonly busy = inject(BusyService);
   private readonly assignmentsRef = collection(this.firestore, COLLECTIONS.jobEmployees);
 
   readonly assignments = signal<JobEmployee[]>([]);
@@ -62,6 +64,7 @@ export class JobEmployeeService {
           this.loading.set(false);
         },
       });
+    this.busy.guard(this, ['assignEmployeeToJob', 'assignEmployeesToJob', 'removeEmployeeFromJob']);
   }
 
   getEmployeesByJob(jobId: string, status?: JobAssignmentStatus): JobEmployee[] {

@@ -22,6 +22,7 @@ import { COLLECTIONS } from '../constants/collections';
 import { AuthService } from '../auth/auth.service';
 import { Job, JobStatus, JobWriteData } from '../models';
 import { omitUndefined, toDate } from '../utils/form.util';
+import { BusyService } from './busy.service';
 
 const JOB_CODE_PATTERN = /^JOB-(\d{4})-(\d+)$/i;
 
@@ -31,6 +32,7 @@ const JOB_CODE_PATTERN = /^JOB-(\d{4})-(\d+)$/i;
 export class JobService {
   private readonly firestore = inject(Firestore);
   private readonly authService = inject(AuthService);
+  private readonly busy = inject(BusyService);
   private readonly jobsRef = collection(this.firestore, COLLECTIONS.jobs);
 
   readonly jobs = signal<Job[]>([]);
@@ -74,6 +76,7 @@ export class JobService {
           this.loading.set(false);
         },
       });
+    this.busy.guard(this, ['createJob', 'updateJob', 'changeJobStatus', 'deleteJob']);
   }
 
   getJobs(): Job[] {

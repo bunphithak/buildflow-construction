@@ -27,6 +27,7 @@ import {
 } from '../models';
 import { compressImageToDataUrl } from '../utils/image-compress.util';
 import { omitUndefined, toDate } from '../utils/form.util';
+import { BusyService } from './busy.service';
 
 const CODE_PATTERN = /^EMP-(\d+)$/i;
 const MAX_PROFILE_BYTES = 5 * 1024 * 1024;
@@ -37,6 +38,7 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 })
 export class EmployeeService {
   private readonly firestore = inject(Firestore);
+  private readonly busy = inject(BusyService);
   private readonly employeesRef = collection(this.firestore, COLLECTIONS.employees);
 
   readonly employees = signal<Employee[]>([]);
@@ -71,6 +73,7 @@ export class EmployeeService {
           this.loading.set(false);
         },
       });
+    this.busy.guard(this, ['createEmployee', 'updateEmployee', 'changeEmployeeStatus', 'uploadProfileImage']);
   }
 
   getEmployees(): Employee[] {
