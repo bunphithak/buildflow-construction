@@ -1,6 +1,6 @@
 <app-page-header
   [title]="isEdit ? 'แก้ไขผู้ใช้' : 'สร้างผู้ใช้'"
-  subtitle="กำหนดชื่อผู้ใช้ บทบาท และเมนูที่เข้าถึงได้"
+  subtitle="กำหนดชื่อผู้ใช้ อีเมล บทบาท และเมนูที่เข้าถึงได้"
 />
 
 @if (loading()) {
@@ -24,15 +24,24 @@
             <small>ใช้ a-z, 0-9, จุด ขีดล่าง หรือขีดกลาง ยาว 3-32 ตัว ไม่ต้องเป็นอีเมล</small>
           }
         </label>
-        @if (!isEdit) {
-          <label>
-            รหัสผ่าน *
-            <input type="password" formControlName="password" autocomplete="new-password" />
-            @if (hasError('password', 'required') || hasError('password', 'minlength')) {
-              <small>รหัสผ่านอย่างน้อย 6 ตัวอักษร</small>
-            }
-          </label>
-        }
+        <label>
+          อีเมล
+          <input type="email" formControlName="email" autocomplete="email" placeholder="เช่น somchai@company.com" />
+          @if (hasError('email', 'email')) {
+            <small>กรุณากรอกอีเมลให้ถูกต้อง</small>
+          }
+          <span class="hint">ไม่บังคับ · ถ้ามี อีเมลนี้ใช้เข้าสู่ระบบและรีเซ็ตรหัสผ่านได้</span>
+        </label>
+        <label>
+          {{ isEdit ? 'รหัสผ่านใหม่' : 'รหัสผ่าน *' }}
+          <input type="password" formControlName="password" autocomplete="new-password" />
+          @if (hasError('password', 'required') || hasError('password', 'minlength')) {
+            <small>รหัสผ่านอย่างน้อย 6 ตัวอักษร</small>
+          }
+          @if (isEdit) {
+            <span class="hint">เว้นว่างถ้าไม่เปลี่ยน · ถ้าลืมรหัสให้ตั้งรหัสใหม่ที่นี่แล้วกดบันทึก</span>
+          }
+        </label>
         <label>
           สถานะ
           <select formControlName="isActive">

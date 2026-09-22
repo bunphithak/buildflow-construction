@@ -25,6 +25,8 @@ import { ToastService } from '../../../shared/services/toast.service';
 
 interface DailyRow {
   selected: boolean;
+  lockedByOtherJob: boolean;
+  otherJobCode?: string;
   attendanceId?: string;
   employeeId: string;
   employeeCode: string;
@@ -86,12 +88,15 @@ export class DailyAttendanceComponent {
     this.jobService.jobs().filter((job) => job.status === 'OPEN' || job.status === 'IN_PROGRESS'),
   );
 
-  readonly selectedCount = computed(() => this.rows().filter((row) => row.selected).length);
-  readonly allSelected = computed(
-    () => this.rows().length > 0 && this.rows().every((row) => row.selected),
+  readonly selectedCount = computed(() =>
+    this.rows().filter((row) => row.selected && !row.lockedByOtherJob).length,
   );
+  readonly allSelected = computed(() => {
+    const editable = this.rows().filter((row) => !row.lockedByOtherJob);
+    return editable.length > 0 && editable.every((row) => row.selected);
+  });
   readonly selectedSavedCount = computed(
-    () => this.rows().filter((row) => row.selected && row.attendanceId).length,
+    () => this.rows().filter((row) => row.selected && !row.lockedByOtherJob && row.attendanceId).length,
   );
   readonly saveLabel = computed(() => {
     const selected = this.selectedCount();
@@ -120,7 +125,9 @@ export class DailyAttendanceComponent {
   }
 
   toggleAll(checked: boolean): void {
-    this.rows.update((rows) => rows.map((row) => ({ ...row, selected: checked })));
+    this.rows.update((rows) =>
+      rows.map((row) => (row.lockedByOtherJob ? row : { ...row, selected: checked })),
+    );
   }
 
   onToggleAll(event: Event): void {
@@ -134,13 +141,20 @@ export class DailyAttendanceComponent {
 
   updateRow(index: number, patch: Partial<DailyRow>): void {
     this.rows.update((rows) =>
-      rows.map((row, i) => (i === index ? { ...row, ...patch, error: undefined } : row)),
+      rows.map((row, i) => {
+        if (i !== index || row.lockedByOtherJob) {
+          return row;
+        }
+        return { ...row, ...patch, error: undefined };
+      }),
     );
   }
 
   applyStatus(status: AttendanceStatus): void {
     this.rows.update((rows) =>
-      rows.map((row) => (row.selected ? { ...row, status, error: undefined } : row)),
+      rows.map((row) =>
+        row.selected && !row.lockedByOtherJob ? { ...row, status, error: undefined } : row,
+      ),
     );
   }
 
@@ -150,7 +164,9 @@ export class DailyAttendanceComponent {
     const breakMinutes = Number(this.defaultBreakMinutes() || 0);
     this.rows.update((rows) =>
       rows.map((row) =>
-        row.selected ? { ...row, clockIn, clockOut, breakMinutes, error: undefined } : row,
+        row.selected && !row.lockedByOtherJob
+          ? { ...row, clockIn, clockOut, breakMinutes, error: undefined }
+          : row,
       ),
     );
   }
@@ -165,7 +181,17 @@ export class DailyAttendanceComponent {
     try {
       const date = new Date(`${this.workDate()}T00:00:00`);
       const assignments = this.jobEmployeeService.getEmployeesByJob(jobId, 'ACTIVE');
-      const existing = await this.attendanceService.getAttendancesByJobAndDate(jobId, date);
+      const dayRows = await this.attendanceService.getAttendancesByDate(date);
+      const existing = dayRows.filter((item) => item.jobId === jobId);
+      const otherByEmployee = new Map<string, Attendance[]>();
+      for (const item of dayRows) {
+        if (item.jobId === jobId) {
+          continue;
+        }
+        const list = otherByEmployee.get(item.employeeId) ?? [];
+        list.push(item);
+        otherByEmployee.set(item.employeeId, list);
+      }
       const existingMap = new Map(existing.map((item) => [item.employeeId, item]));
       const employeeIds = new Set([
         ...assignments.map((item) => item.employeeId),
@@ -183,7 +209,7 @@ export class DailyAttendanceComponent {
         if (!assignmentActive && !attendance) {
           continue;
         }
-        rows.push(this.toRow(employee, attendance, assignmentActive));
+        rows.push(this.toRow(employee, attendance, otherByEmployee.get(employeeId) ?? []));
       }
       this.rows.set(rows.sort((a, b) => a.employeeCode.localeCompare(b.employeeCode)));
       this.loaded.set(true);
@@ -199,7 +225,7 @@ export class DailyAttendanceComponent {
   }
 
   async save(): Promise<void> {
-    const selected = this.rows().filter((row) => row.selected);
+    const selected = this.rows().filter((row) => row.selected && !row.lockedByOtherJob);
     if (selected.length === 0) {
       this.toast.error('กรุณาเลือกพนักงานอย่างน้อย 1 คน');
       return;
@@ -281,10 +307,20 @@ export class DailyAttendanceComponent {
     }
   }
 
-  private toRow(employee: Employee, attendance: Attendance | undefined, assignmentActive: boolean): DailyRow {
+  private toRow(
+    employee: Employee,
+    attendance: Attendance | undefined,
+    otherAttendances: Attendance[],
+  ): DailyRow {
     const settings = this.settings();
+    const lockedByOtherJob = !attendance && otherAttendances.length > 0;
+    const display = attendance ?? otherAttendances[0];
     return {
-      selected: true,
+      selected: !lockedByOtherJob,
+      lockedByOtherJob,
+      otherJobCode: lockedByOtherJob
+        ? [...new Set(otherAttendances.map((item) => this.jobCode(item.jobId)))].join(', ')
+        : undefined,
       attendanceId: attendance?.id,
       employeeId: employee.id,
       employeeCode: employee.employeeCode,
@@ -292,21 +328,25 @@ export class DailyAttendanceComponent {
       position: employee.position,
       employmentType: employee.employmentType,
       employeeActive: employee.status === 'ACTIVE',
-      status: attendance?.status ?? 'PRESENT',
-      clockIn: attendance?.clockIn
-        ? formatBangkokTime(attendance.clockIn.toDate())
+      status: display?.status ?? 'PRESENT',
+      clockIn: display?.clockIn
+        ? formatBangkokTime(display.clockIn.toDate())
         : settings.defaultClockIn,
-      clockOut: attendance?.clockOut
-        ? formatBangkokTime(attendance.clockOut.toDate())
+      clockOut: display?.clockOut
+        ? formatBangkokTime(display.clockOut.toDate())
         : settings.defaultClockOut,
-      breakMinutes: attendance?.breakMinutes ?? settings.defaultBreakMinutes,
-      overtimeHours: attendance?.overtimeHours ?? 0,
-      note: attendance?.note ?? '',
-      employmentTypeSnapshot: attendance?.employmentTypeSnapshot ?? employee.employmentType,
-      dailyRateSnapshot: attendance?.dailyRateSnapshot ?? employee.dailyRate,
-      monthlySalarySnapshot: attendance?.monthlySalarySnapshot ?? employee.monthlySalary,
-      overtimeRateSnapshot: attendance?.overtimeRateSnapshot ?? employee.overtimeRate,
+      breakMinutes: display?.breakMinutes ?? settings.defaultBreakMinutes,
+      overtimeHours: display?.overtimeHours ?? 0,
+      note: display?.note ?? '',
+      employmentTypeSnapshot: display?.employmentTypeSnapshot ?? employee.employmentType,
+      dailyRateSnapshot: display?.dailyRateSnapshot ?? employee.dailyRate,
+      monthlySalarySnapshot: display?.monthlySalarySnapshot ?? employee.monthlySalary,
+      overtimeRateSnapshot: display?.overtimeRateSnapshot ?? employee.overtimeRate,
     };
+  }
+
+  private jobCode(jobId: string): string {
+    return this.jobService.jobs().find((job) => job.id === jobId)?.jobCode ?? jobId;
   }
 
   jobLabel(job: Job): string {

@@ -11,12 +11,12 @@
 
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <label>
-        ชื่อผู้ใช้
-        <input type="text" formControlName="identifier" autocomplete="username" placeholder="เช่น somchai" />
-        <small class="hint">บัญชีเดิมที่สร้างด้วยอีเมล ยังเข้าด้วยอีเมลได้</small>
+        ชื่อผู้ใช้ หรืออีเมล
+        <input type="text" formControlName="identifier" autocomplete="username" placeholder="เช่น somchai หรืออีเมล" />
+        <small class="hint">เข้าได้ทั้งชื่อผู้ใช้และอีเมล</small>
       </label>
       @if (form.controls.identifier.touched && form.controls.identifier.invalid) {
-        <small class="field-error">กรุณากรอกชื่อผู้ใช้</small>
+        <small class="field-error">กรุณากรอกชื่อผู้ใช้หรืออีเมล</small>
       }
 
       <label>

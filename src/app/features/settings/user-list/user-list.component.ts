@@ -1,10 +1,11 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AppUser, USER_ROLE_LABELS, UserRole } from '../../../core/models';
 import { EmployeeService } from '../../../core/services/employee.service';
 import { UserService, mapUserError } from '../../../core/services/user.service';
 import { loginId } from '../../../core/utils/auth-login.util';
+import { visibleContactEmail } from '../../../core/utils/contact-email.util';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
@@ -29,6 +30,7 @@ export class UserListComponent {
   private readonly employeeService = inject(EmployeeService);
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly router = inject(Router);
 
   readonly loading = this.userService.loading;
   readonly error = this.userService.error;
@@ -49,7 +51,7 @@ export class UserListComponent {
     return this.userService.users().filter((user) => {
       const matchesKeyword =
         !keyword ||
-        [user.displayName, loginId(user), user.email].join(' ').toLowerCase().includes(keyword);
+        [user.displayName, loginId(user), user.email, user.contactEmail ?? ''].join(' ').toLowerCase().includes(keyword);
       const matchesRole = !role || user.role === role;
       const matchesStatus =
         !status || (status === 'ACTIVE' ? user.isActive : !user.isActive);
@@ -79,25 +81,30 @@ export class UserListComponent {
     return loginId(user);
   }
 
+  displayEmail(user: AppUser): string {
+    return visibleContactEmail(user) || '-';
+  }
+
   canResetPassword(user: AppUser): boolean {
     return this.userService.canResetPassword(user);
   }
 
   async resetPassword(user: AppUser): Promise<void> {
     if (!this.userService.canResetPassword(user)) {
-      this.toast.error('บัญชีนี้เข้าด้วยชื่อผู้ใช้ ไม่มีอีเมลสำหรับรีเซ็ตรหัสผ่าน');
+      await this.router.navigate(['/settings/users', user.uid, 'edit']);
+      this.toast.warning('บัญชีนี้เข้าด้วยชื่อผู้ใช้ กรอกรหัสผ่านใหม่แล้วกดบันทึก');
       return;
     }
     const confirmed = await this.confirmDialog.confirm({
       title: 'ส่งลิงก์รีเซ็ตรหัสผ่าน',
-      message: `ส่งอีเมลรีเซ็ตรหัสผ่านไปที่ ${user.email} หรือไม่?`,
+      message: `ส่งอีเมลรีเซ็ตรหัสผ่านไปที่ ${visibleContactEmail(user) || user.email} หรือไม่?`,
       confirmLabel: 'ส่งอีเมล',
     });
     if (!confirmed) {
       return;
     }
     try {
-      await this.userService.sendResetPassword(user.email);
+      await this.userService.sendResetPassword(visibleContactEmail(user) || user.email);
       this.toast.success('ส่งอีเมลรีเซ็ตรหัสผ่านแล้ว');
     } catch (error) {
       this.toast.error(mapUserError(error));

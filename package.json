@@ -11,6 +11,8 @@
     "watch": "ng build --watch --configuration development",
     "deploy:test": "npm run build:test && firebase deploy --project test",
     "deploy:prod": "npm run build:prod && firebase deploy --project prod",
+    "deploy:functions:test": "firebase deploy --only functions --project test",
+    "deploy:functions:prod": "firebase deploy --only functions --project prod",
     "test": "ng test"
   },
   "private": true,

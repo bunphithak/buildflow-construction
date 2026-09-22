@@ -26,6 +26,8 @@ import { ToastService } from '../../../shared/services/toast.service';
 
 interface TodayRow {
   selected: boolean;
+  lockedByOtherJob: boolean;
+  otherJobCode?: string;
   attendanceId?: string;
   employeeId: string;
   employeeCode: string;
@@ -94,12 +96,15 @@ export class AttendanceTodayComponent {
     ),
   );
 
-  readonly selectedCount = computed(() => this.rows().filter((row) => row.selected).length);
-  readonly allSelected = computed(
-    () => this.rows().length > 0 && this.rows().every((row) => row.selected),
+  readonly selectedCount = computed(() =>
+    this.rows().filter((row) => row.selected && !row.lockedByOtherJob).length,
   );
+  readonly allSelected = computed(() => {
+    const editable = this.rows().filter((row) => !row.lockedByOtherJob);
+    return editable.length > 0 && editable.every((row) => row.selected);
+  });
   readonly selectedSavedCount = computed(
-    () => this.rows().filter((row) => row.selected && row.attendanceId).length,
+    () => this.rows().filter((row) => row.selected && !row.lockedByOtherJob && row.attendanceId).length,
   );
   readonly saveLabel = computed(() => {
     const selected = this.selectedCount();
@@ -134,7 +139,9 @@ export class AttendanceTodayComponent {
   }
 
   toggleAll(checked: boolean): void {
-    this.rows.update((rows) => rows.map((row) => ({ ...row, selected: checked })));
+    this.rows.update((rows) =>
+      rows.map((row) => (row.lockedByOtherJob ? row : { ...row, selected: checked })),
+    );
   }
 
   onToggleAll(event: Event): void {
@@ -148,13 +155,20 @@ export class AttendanceTodayComponent {
 
   updateRow(index: number, patch: Partial<TodayRow>): void {
     this.rows.update((rows) =>
-      rows.map((row, i) => (i === index ? { ...row, ...patch, error: undefined } : row)),
+      rows.map((row, i) => {
+        if (i !== index || row.lockedByOtherJob) {
+          return row;
+        }
+        return { ...row, ...patch, error: undefined };
+      }),
     );
   }
 
   applyStatus(status: AttendanceStatus): void {
     this.rows.update((rows) =>
-      rows.map((row) => (row.selected ? { ...row, status, error: undefined } : row)),
+      rows.map((row) =>
+        row.selected && !row.lockedByOtherJob ? { ...row, status, error: undefined } : row,
+      ),
     );
   }
 
@@ -164,7 +178,9 @@ export class AttendanceTodayComponent {
     const breakMinutes = Number(this.defaultBreakMinutes() || 0);
     this.rows.update((rows) =>
       rows.map((row) =>
-        row.selected ? { ...row, clockIn, clockOut, breakMinutes, error: undefined } : row,
+        row.selected && !row.lockedByOtherJob
+          ? { ...row, clockIn, clockOut, breakMinutes, error: undefined }
+          : row,
       ),
     );
   }
@@ -186,7 +202,17 @@ export class AttendanceTodayComponent {
     try {
       const date = new Date(`${this.workDate}T00:00:00`);
       const assignments = await this.jobEmployeeService.queryActiveByJob(jobId);
-      const existing = await this.loadExistingForJob(jobId, date);
+      const dayRows = await this.attendanceService.getAttendancesByDate(date);
+      const existing = dayRows.filter((item) => item.jobId === jobId);
+      const otherByEmployee = new Map<string, Attendance[]>();
+      for (const item of dayRows) {
+        if (item.jobId === jobId) {
+          continue;
+        }
+        const list = otherByEmployee.get(item.employeeId) ?? [];
+        list.push(item);
+        otherByEmployee.set(item.employeeId, list);
+      }
       const existingMap = new Map(existing.map((item) => [item.employeeId, item]));
       const employeeIds = new Set([
         ...assignments.map((item) => item.employeeId),
@@ -204,7 +230,7 @@ export class AttendanceTodayComponent {
         if (!assignmentActive && !attendance) {
           continue;
         }
-        rows.push(this.toRow(employee, attendance));
+        rows.push(this.toRow(employee, attendance, otherByEmployee.get(employeeId) ?? []));
       }
       this.rows.set(rows.sort((a, b) => a.employeeCode.localeCompare(b.employeeCode)));
       this.loaded.set(true);
@@ -220,7 +246,7 @@ export class AttendanceTodayComponent {
   }
 
   async save(): Promise<void> {
-    const selected = this.rows().filter((row) => row.selected);
+    const selected = this.rows().filter((row) => row.selected && !row.lockedByOtherJob);
     if (selected.length === 0) {
       this.toast.error('กรุณาเลือกพนักงานอย่างน้อย 1 คน');
       return;
@@ -303,10 +329,6 @@ export class AttendanceTodayComponent {
     return `${job.jobCode} - ${job.jobName}`;
   }
 
-  private async loadExistingForJob(jobId: string, date: Date): Promise<Attendance[]> {
-    return this.attendanceService.getAttendancesByJobAndDate(jobId, date);
-  }
-
   private async init(): Promise<void> {
     const requested = this.jobId();
     if (requested && !this.authService.canManageJob(requested)) {
@@ -326,29 +348,43 @@ export class AttendanceTodayComponent {
     }
   }
 
-  private toRow(employee: Employee, attendance: Attendance | undefined): TodayRow {
+  private toRow(
+    employee: Employee,
+    attendance: Attendance | undefined,
+    otherAttendances: Attendance[],
+  ): TodayRow {
     const settings = this.settings();
+    const lockedByOtherJob = !attendance && otherAttendances.length > 0;
+    const display = attendance ?? otherAttendances[0];
     return {
-      selected: true,
+      selected: !lockedByOtherJob,
+      lockedByOtherJob,
+      otherJobCode: lockedByOtherJob
+        ? [...new Set(otherAttendances.map((item) => this.jobCode(item.jobId)))].join(', ')
+        : undefined,
       attendanceId: attendance?.id,
       employeeId: employee.id,
       employeeCode: employee.employeeCode,
       fullName: `${employee.firstName} ${employee.lastName}`.trim(),
       employeeActive: employee.status === 'ACTIVE',
-      status: attendance?.status ?? 'PRESENT',
-      clockIn: attendance?.clockIn
-        ? formatBangkokTime(attendance.clockIn.toDate())
+      status: display?.status ?? 'PRESENT',
+      clockIn: display?.clockIn
+        ? formatBangkokTime(display.clockIn.toDate())
         : settings.defaultClockIn,
-      clockOut: attendance?.clockOut
-        ? formatBangkokTime(attendance.clockOut.toDate())
+      clockOut: display?.clockOut
+        ? formatBangkokTime(display.clockOut.toDate())
         : settings.defaultClockOut,
-      breakMinutes: attendance?.breakMinutes ?? settings.defaultBreakMinutes,
-      overtimeHours: attendance?.overtimeHours ?? 0,
-      note: attendance?.note ?? '',
-      employmentTypeSnapshot: attendance?.employmentTypeSnapshot ?? employee.employmentType,
-      dailyRateSnapshot: attendance?.dailyRateSnapshot ?? employee.dailyRate,
-      monthlySalarySnapshot: attendance?.monthlySalarySnapshot ?? employee.monthlySalary,
-      overtimeRateSnapshot: attendance?.overtimeRateSnapshot ?? employee.overtimeRate,
+      breakMinutes: display?.breakMinutes ?? settings.defaultBreakMinutes,
+      overtimeHours: display?.overtimeHours ?? 0,
+      note: display?.note ?? '',
+      employmentTypeSnapshot: display?.employmentTypeSnapshot ?? employee.employmentType,
+      dailyRateSnapshot: display?.dailyRateSnapshot ?? employee.dailyRate,
+      monthlySalarySnapshot: display?.monthlySalarySnapshot ?? employee.monthlySalary,
+      overtimeRateSnapshot: display?.overtimeRateSnapshot ?? employee.overtimeRate,
     };
+  }
+
+  private jobCode(jobId: string): string {
+    return this.jobService.jobs().find((job) => job.id === jobId)?.jobCode ?? jobId;
   }
 }

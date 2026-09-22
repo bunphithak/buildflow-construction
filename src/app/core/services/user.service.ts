@@ -1,5 +1,6 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Auth, sendPasswordResetEmail } from '@angular/fire/auth';
+import { Functions, httpsCallable } from '@angular/fire/functions';
 import {
   collection,
   collectionData,
@@ -26,6 +27,11 @@ import {
   normalizeUsername,
   toAuthEmail,
 } from '../utils/auth-login.util';
+import {
+  isValidContactEmail,
+  normalizeContactEmail,
+  visibleContactEmail,
+} from '../utils/contact-email.util';
 
 const SECONDARY_APP = 'user-admin';
 
@@ -35,6 +41,7 @@ const SECONDARY_APP = 'user-admin';
 export class UserService {
   private readonly firestore = inject(Firestore);
   private readonly auth = inject(Auth);
+  private readonly functions = inject(Functions);
   private readonly authService = inject(AuthService);
   private readonly usersRef = collection(this.firestore, COLLECTIONS.users);
 
@@ -73,7 +80,8 @@ export class UserService {
   async createUser(data: UserWriteData): Promise<string> {
     this.assertAdmin();
     const username = normalizeUsername(data.username);
-    const email = toAuthEmail(username);
+    const contactEmail = this.normalizedContactEmail(data.contactEmail);
+    const email = contactEmail || toAuthEmail(username);
     const password = data.password?.trim() ?? '';
     if (!password || password.length < 6) {
       throw new Error('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
@@ -92,6 +100,7 @@ export class UserService {
           omitUndefined({
             email,
             username,
+            contactEmail: contactEmail || undefined,
             displayName: data.displayName.trim(),
             role: data.role,
             employeeId: data.employeeId,
@@ -126,6 +135,10 @@ export class UserService {
     this.assertUniqueEmployee(data.employeeId, uid);
     this.assertLastAdminSafe(uid, data);
 
+    const contactEmail = this.normalizedContactEmail(data.contactEmail);
+    const nextAuthEmail = contactEmail || toAuthEmail(loginId(current));
+    this.assertUniqueLogin(loginId(current), nextAuthEmail, uid);
+
     const payload: Record<string, unknown> = omitUndefined({
       displayName: data.displayName.trim(),
       role: data.role,
@@ -142,19 +155,65 @@ export class UserService {
     } else {
       payload['assignedJobIds'] = deleteField();
     }
+    if (contactEmail) {
+      payload['contactEmail'] = contactEmail;
+    } else {
+      payload['contactEmail'] = deleteField();
+    }
+    if (current.email.toLowerCase() !== nextAuthEmail) {
+      await this.updateUserEmail(uid, nextAuthEmail);
+      payload['email'] = nextAuthEmail;
+    }
     await updateDoc(doc(this.firestore, COLLECTIONS.users, uid), payload as DocumentData);
+    const password = data.password?.trim();
+    if (password) {
+      await this.setUserPassword(uid, password);
+    }
   }
 
   canResetPassword(user: AppUser): boolean {
-    return !isUsernameAuthEmail(user.email);
+    return !!visibleContactEmail(user) && !isUsernameAuthEmail(user.email);
+  }
+
+  async setUserPassword(uid: string, password: string): Promise<void> {
+    this.assertAdmin();
+    const nextPassword = password.trim();
+    if (nextPassword.length < 6) {
+      throw new Error('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+    }
+    const callable = httpsCallable<{ uid: string; password: string }, { ok: boolean }>(
+      this.functions,
+      'setUserPassword',
+    );
+    await callable({ uid, password: nextPassword });
   }
 
   async sendResetPassword(email: string): Promise<void> {
     this.assertAdmin();
-    if (isUsernameAuthEmail(email)) {
-      throw new Error('บัญชีนี้เข้าด้วยชื่อผู้ใช้ ไม่มีอีเมลสำหรับรีเซ็ตรหัสผ่าน');
+    if (isUsernameAuthEmail(email) || !isValidContactEmail(email)) {
+      throw new Error('บัญชีนี้ยังไม่มีอีเมลสำหรับรีเซ็ตรหัสผ่าน');
     }
     await sendPasswordResetEmail(this.auth, email);
+  }
+
+  private async updateUserEmail(uid: string, email: string): Promise<void> {
+    this.assertAdmin();
+    const callable = httpsCallable<{ uid: string; email: string }, { ok: boolean }>(
+      this.functions,
+      'updateUserEmail',
+    );
+    await callable({ uid, email });
+  }
+
+  private normalizedContactEmail(value?: string): string {
+    const email = value ? normalizeContactEmail(value) : '';
+    if (!email) {
+      return '';
+    }
+    if (!isValidContactEmail(email)) {
+      throw new Error('กรุณากรอกอีเมลให้ถูกต้อง');
+    }
+    return email;
   }
 
   private assertAdmin(): void {
@@ -173,13 +232,27 @@ export class UserService {
   }
 
   private assertUniqueLogin(username: string, email: string, excludeUid?: string): void {
-    const exists = this.users().some(
-      (item) =>
-        item.uid !== excludeUid &&
-        (loginId(item) === username || item.email.toLowerCase() === email),
+    const existsUsername = this.users().some(
+      (item) => item.uid !== excludeUid && loginId(item) === username,
     );
-    if (exists) {
+    if (existsUsername) {
       throw new Error('ชื่อผู้ใช้นี้มีในระบบแล้ว');
+    }
+    this.assertUniqueEmail(email, excludeUid);
+  }
+
+  private assertUniqueEmail(email: string, excludeUid?: string): void {
+    const target = email.toLowerCase();
+    const exists = this.users().some((item) => {
+      if (item.uid === excludeUid) {
+        return false;
+      }
+      return [item.email, item.contactEmail]
+        .filter((value): value is string => !!value)
+        .some((value) => value.toLowerCase() === target);
+    });
+    if (exists) {
+      throw new Error('อีเมลนี้มีในระบบแล้ว');
     }
   }
 
@@ -220,6 +293,7 @@ export class UserService {
       uid: String(row['uid'] ?? ''),
       email: String(row['email'] ?? ''),
       username: row['username'] ? String(row['username']) : undefined,
+      contactEmail: row['contactEmail'] ? String(row['contactEmail']) : undefined,
       displayName: String(row['displayName'] ?? row['username'] ?? row['email'] ?? ''),
       role: normalizeUserRole(row['role']),
       employeeId: row['employeeId'] ? String(row['employeeId']) : undefined,
@@ -237,13 +311,21 @@ export function mapUserError(error: unknown): string {
   const code = error instanceof FirebaseError ? error.code : '';
   switch (code) {
     case 'auth/email-already-in-use':
-      return 'ชื่อผู้ใช้นี้ถูกใช้แล้ว';
+    case 'functions/already-exists':
+      return 'อีเมลหรือชื่อผู้ใช้นี้ถูกใช้แล้ว';
     case 'auth/invalid-email':
-      return 'ชื่อผู้ใช้ไม่ถูกต้อง';
+      return 'อีเมลหรือชื่อผู้ใช้ไม่ถูกต้อง';
     case 'auth/weak-password':
       return 'รหัสผ่านง่ายเกินไป ต้องมีอย่างน้อย 6 ตัวอักษร';
     case 'auth/operation-not-allowed':
       return 'ยังไม่ได้เปิด Email/Password ใน Firebase Authentication';
+    case 'functions/not-found':
+    case 'functions/unavailable':
+      return 'ยังไม่ได้ติดตั้ง Cloud Functions กรุณา deploy ก่อนตั้งรหัสผ่านหรืออีเมล';
+    case 'functions/permission-denied':
+      return 'เฉพาะผู้ดูแลระบบเท่านั้นที่ตั้งรหัสผ่านได้';
+    case 'functions/invalid-argument':
+      return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
     default:
       return error instanceof Error ? error.message : 'ไม่สามารถบันทึกผู้ใช้ได้';
   }

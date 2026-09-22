@@ -12,6 +12,7 @@ import { EmployeeService } from '../../../core/services/employee.service';
 import { JobService } from '../../../core/services/job.service';
 import { UserService, mapUserError } from '../../../core/services/user.service';
 import { loginId, normalizeUsername } from '../../../core/utils/auth-login.util';
+import { visibleContactEmail } from '../../../core/utils/contact-email.util';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { ToastService } from '../../../shared/services/toast.service';
@@ -44,6 +45,7 @@ export class UserFormComponent implements OnInit {
   readonly form = this.fb.nonNullable.group({
     displayName: ['', Validators.required],
     username: ['', [Validators.required, Validators.pattern(/^[a-zA-Z0-9._-]{3,32}$/)]],
+    email: ['', Validators.email],
     password: [''],
     role: this.fb.nonNullable.control<UserRole>('MANAGER', Validators.required),
     employeeId: [''],
@@ -78,11 +80,14 @@ export class UserFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.form.controls.password.addValidators(Validators.minLength(6));
     if (!this.isEdit) {
-      this.form.controls.password.addValidators([Validators.required, Validators.minLength(6)]);
+      this.form.controls.password.addValidators(Validators.required);
       this.form.controls.password.updateValueAndValidity();
       return;
     }
+
+    this.form.controls.password.updateValueAndValidity();
 
     this.form.controls.username.disable();
     const user = this.userService.getUserById(this.uid ?? '');
@@ -147,7 +152,7 @@ export class UserFormComponent implements OnInit {
     return this.assignedJobIds().filter((id) => !visible.has(id));
   }
 
-  hasError(control: 'displayName' | 'username' | 'password', error: string): boolean {
+  hasError(control: 'displayName' | 'username' | 'email' | 'password', error: string): boolean {
     const field = this.form.controls[control];
     return field.touched && field.hasError(error);
   }
@@ -166,6 +171,7 @@ export class UserFormComponent implements OnInit {
       role: value.role,
       employeeId: value.employeeId || undefined,
       assignedJobIds: value.role === 'MANAGER' ? this.assignedJobIds() : [],
+      contactEmail: value.email.trim() || undefined,
       isActive: value.isActive,
       password: value.password,
     };
@@ -174,7 +180,7 @@ export class UserFormComponent implements OnInit {
     try {
       if (this.isEdit && this.uid) {
         await this.userService.updateUser(this.uid, payload);
-        this.toast.success('บันทึกผู้ใช้แล้ว');
+        this.toast.success(payload.password?.trim() ? 'บันทึกและตั้งรหัสผ่านใหม่แล้ว' : 'บันทึกผู้ใช้แล้ว');
       } else {
         await this.userService.createUser(payload);
         this.toast.success('สร้างผู้ใช้แล้ว สามารถเข้าสู่ระบบได้ทันที');
@@ -191,6 +197,7 @@ export class UserFormComponent implements OnInit {
     displayName: string;
     username?: string;
     email: string;
+    contactEmail?: string;
     role: UserRole;
     employeeId?: string;
     assignedJobIds?: string[];
@@ -199,6 +206,7 @@ export class UserFormComponent implements OnInit {
     this.form.patchValue({
       displayName: user.displayName,
       username: loginId(user),
+      email: visibleContactEmail(user),
       role: user.role,
       employeeId: user.employeeId ?? '',
       isActive: user.isActive,

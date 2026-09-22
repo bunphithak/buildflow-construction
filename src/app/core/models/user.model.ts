@@ -40,6 +40,7 @@ export interface AppUser {
   uid: string;
   email: string;
   username?: string;
+  contactEmail?: string;
   displayName: string;
   role: UserRole;
   employeeId?: string;
@@ -56,6 +57,7 @@ export interface UserWriteData {
   role: UserRole;
   employeeId?: string;
   assignedJobIds: string[];
+  contactEmail?: string;
   isActive: boolean;
   password?: string;
 }

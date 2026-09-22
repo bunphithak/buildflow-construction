@@ -7,13 +7,14 @@ import {
   signOut,
   User,
 } from '@angular/fire/auth';
+import { Functions, httpsCallable } from '@angular/fire/functions';
 import { doc, docData, Firestore, getDoc, serverTimestamp, setDoc } from '@angular/fire/firestore';
 import { FirebaseError } from 'firebase/app';
 import { filter, map, of, switchMap, take } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { COLLECTIONS } from '../constants/collections';
 import { AppUser, UserRole, normalizeAssignedJobIds, normalizeUserRole } from '../models';
-import { toAuthEmail } from '../utils/auth-login.util';
+import { isEmailIdentifier, toAuthEmail } from '../utils/auth-login.util';
 
 @Injectable({
   providedIn: 'root',
@@ -21,6 +22,7 @@ import { toAuthEmail } from '../utils/auth-login.util';
 export class AuthService {
   private readonly auth = inject(Auth);
   private readonly firestore = inject(Firestore);
+  private readonly functions = inject(Functions);
 
   readonly firebaseUser = signal<User | null>(null);
   readonly currentUser = signal<AppUser | null>(null);
@@ -66,22 +68,23 @@ export class AuthService {
 
   async login(identifier: string, password: string): Promise<void> {
     this.authError.set(null);
+    const raw = identifier.trim();
+    const firstEmail = toAuthEmail(raw);
     try {
-      const email = toAuthEmail(identifier);
-      const credential = await signInWithEmailAndPassword(this.auth, email, password);
-      let profile = await this.loadUserProfile(credential.user);
-      if (!profile) {
-        profile = await this.bootstrapFirstAdmin(credential.user);
+      await this.signInWithProfile(firstEmail, password);
+      return;
+    } catch (error) {
+      if (!this.shouldLookupUsername(raw, error)) {
+        throw new Error(this.mapLoginError(error));
       }
-      if (!profile) {
-        await signOut(this.auth);
-        throw new Error('NO_PROFILE');
+    }
+
+    try {
+      const authEmail = await this.lookupAuthEmail(raw);
+      if (!authEmail || authEmail.toLowerCase() === firstEmail.toLowerCase()) {
+        throw new Error('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
       }
-      if (!profile.isActive) {
-        await signOut(this.auth);
-        throw new Error('INACTIVE');
-      }
-      this.currentUser.set(profile);
+      await this.signInWithProfile(authEmail, password);
     } catch (error) {
       throw new Error(this.mapLoginError(error));
     }
@@ -162,6 +165,7 @@ export class AuthService {
       uid: firebaseUser.uid,
       email: data.email,
       username: data.username || undefined,
+      contactEmail: data.contactEmail || undefined,
       displayName: data.displayName || firebaseUser.displayName || firebaseUser.email || '',
       role: normalizeUserRole(data.role),
       employeeId: data.employeeId,
@@ -173,6 +177,48 @@ export class AuthService {
     };
   }
 
+  private async signInWithProfile(email: string, password: string): Promise<void> {
+    const credential = await signInWithEmailAndPassword(this.auth, email, password);
+    let profile = await this.loadUserProfile(credential.user);
+    if (!profile) {
+      profile = await this.bootstrapFirstAdmin(credential.user);
+    }
+    if (!profile) {
+      await signOut(this.auth);
+      throw new Error('NO_PROFILE');
+    }
+    if (!profile.isActive) {
+      await signOut(this.auth);
+      throw new Error('INACTIVE');
+    }
+    this.currentUser.set(profile);
+  }
+
+  private shouldLookupUsername(identifier: string, error: unknown): boolean {
+    if (isEmailIdentifier(identifier)) {
+      return false;
+    }
+    if (error instanceof Error && (error.message === 'NO_PROFILE' || error.message === 'INACTIVE')) {
+      return false;
+    }
+    const code = error instanceof FirebaseError ? error.code : '';
+    return (
+      code === 'auth/invalid-credential' ||
+      code === 'auth/user-not-found' ||
+      code === 'auth/wrong-password' ||
+      code === 'auth/invalid-email'
+    );
+  }
+
+  private async lookupAuthEmail(username: string): Promise<string> {
+    const callable = httpsCallable<{ username: string }, { email: string }>(
+      this.functions,
+      'lookupAuthEmail',
+    );
+    const result = await callable({ username });
+    return String(result.data?.email ?? '').trim().toLowerCase();
+  }
+
   private mapLoginError(error: unknown): string {
     if (error instanceof Error) {
       if (error.message === 'NO_PROFILE') {
@@ -180,6 +226,9 @@ export class AuthService {
       }
       if (error.message === 'INACTIVE') {
         return 'บัญชีนี้ถูกระงับการใช้งาน';
+      }
+      if (error.message === 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง') {
+        return error.message;
       }
     }
 
@@ -189,6 +238,8 @@ export class AuthService {
       case 'auth/wrong-password':
       case 'auth/user-not-found':
       case 'auth/invalid-email':
+      case 'functions/not-found':
+      case 'functions/invalid-argument':
         return 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
       case 'auth/too-many-requests':
         return 'พยายามเข้าสู่ระบบหลายครั้งเกินไป กรุณาลองใหม่ภายหลัง';

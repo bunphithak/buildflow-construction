@@ -29,6 +29,20 @@
   color: var(--color-muted);
 }
 
+.record.other {
+  color: var(--color-chart-3);
+}
+
+.locked {
+  background: var(--color-surface-muted);
+
+  input,
+  select {
+    opacity: 0.85;
+    cursor: not-allowed;
+  }
+}
+
 .quick {
   margin-bottom: 1rem;
 }

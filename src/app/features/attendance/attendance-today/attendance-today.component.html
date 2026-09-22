@@ -76,32 +76,79 @@
         </thead>
         <tbody>
           @for (row of rows(); track row.employeeId; let i = $index) {
-            <tr [class.invalid]="!!row.error">
+            <tr [class.invalid]="!!row.error" [class.locked]="row.lockedByOtherJob">
               <td>
-                <input type="checkbox" [ngModel]="row.selected" (ngModelChange)="updateRow(i, { selected: $event })" />
+                <input
+                  type="checkbox"
+                  [disabled]="row.lockedByOtherJob"
+                  [ngModel]="row.selected"
+                  (ngModelChange)="updateRow(i, { selected: $event })"
+                />
               </td>
               <td>{{ row.employeeCode }}</td>
               <td>{{ row.fullName }}</td>
               <td class="record-col">
-                @if (row.attendanceId) {
+                @if (row.lockedByOtherJob) {
+                  <span class="record other">{{ row.otherJobCode }}</span>
+                } @else if (row.attendanceId) {
                   <span class="record saved">ลงแล้ว</span>
                 } @else {
                   <span class="record pending">ยังไม่ลง</span>
                 }
               </td>
               <td>
-                <select [ngModel]="row.status" (ngModelChange)="onStatusChange(i, $event)">
+                <select
+                  [disabled]="row.lockedByOtherJob"
+                  [ngModel]="row.status"
+                  (ngModelChange)="onStatusChange(i, $event)"
+                >
                   @for (status of statuses; track status) {
                     <option [value]="status">{{ statusLabels[status] }}</option>
                   }
                 </select>
               </td>
-              <td><input type="time" [ngModel]="row.clockIn" (ngModelChange)="updateRow(i, { clockIn: $event })" /></td>
-              <td><input type="time" [ngModel]="row.clockOut" (ngModelChange)="updateRow(i, { clockOut: $event })" /></td>
-              <td><input type="number" min="0" [ngModel]="row.breakMinutes" (ngModelChange)="updateRow(i, { breakMinutes: $event })" /></td>
-              <td><input type="number" min="0" step="0.5" [ngModel]="row.overtimeHours" (ngModelChange)="updateRow(i, { overtimeHours: $event })" /></td>
               <td>
-                <input type="text" [ngModel]="row.note" (ngModelChange)="updateRow(i, { note: $event })" />
+                <input
+                  type="time"
+                  [disabled]="row.lockedByOtherJob"
+                  [ngModel]="row.clockIn"
+                  (ngModelChange)="updateRow(i, { clockIn: $event })"
+                />
+              </td>
+              <td>
+                <input
+                  type="time"
+                  [disabled]="row.lockedByOtherJob"
+                  [ngModel]="row.clockOut"
+                  (ngModelChange)="updateRow(i, { clockOut: $event })"
+                />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  min="0"
+                  [disabled]="row.lockedByOtherJob"
+                  [ngModel]="row.breakMinutes"
+                  (ngModelChange)="updateRow(i, { breakMinutes: $event })"
+                />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  [disabled]="row.lockedByOtherJob"
+                  [ngModel]="row.overtimeHours"
+                  (ngModelChange)="updateRow(i, { overtimeHours: $event })"
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  [disabled]="row.lockedByOtherJob"
+                  [ngModel]="row.note"
+                  (ngModelChange)="updateRow(i, { note: $event })"
+                />
                 @if (row.error) {
                   <small>{{ row.error }}</small>
                 }
@@ -115,15 +162,22 @@
 
   <section class="mobile-cards">
     @for (row of rows(); track row.employeeId; let i = $index) {
-      <article class="card employee-card" [class.invalid]="!!row.error">
+      <article class="card employee-card" [class.invalid]="!!row.error" [class.locked]="row.lockedByOtherJob">
         <label class="check">
-          <input type="checkbox" [ngModel]="row.selected" (ngModelChange)="updateRow(i, { selected: $event })" />
+          <input
+            type="checkbox"
+            [disabled]="row.lockedByOtherJob"
+            [ngModel]="row.selected"
+            (ngModelChange)="updateRow(i, { selected: $event })"
+          />
           <strong>{{ row.fullName }}</strong>
         </label>
         <p>
           {{ row.employeeCode }}
           ·
-          @if (row.attendanceId) {
+          @if (row.lockedByOtherJob) {
+            <span class="record other">{{ row.otherJobCode }}</span>
+          } @else if (row.attendanceId) {
             <span class="record saved">ลงแล้ว</span>
           } @else {
             <span class="record pending">ยังไม่ลง</span>
@@ -131,16 +185,46 @@
         </p>
         <label>
           สถานะ
-          <select [ngModel]="row.status" (ngModelChange)="onStatusChange(i, $event)">
+          <select
+            [disabled]="row.lockedByOtherJob"
+            [ngModel]="row.status"
+            (ngModelChange)="onStatusChange(i, $event)"
+          >
             @for (status of statuses; track status) {
               <option [value]="status">{{ statusLabels[status] }}</option>
             }
           </select>
         </label>
         <div class="times">
-          <label>เข้า <input type="time" [ngModel]="row.clockIn" (ngModelChange)="updateRow(i, { clockIn: $event })" /></label>
-          <label>ออก <input type="time" [ngModel]="row.clockOut" (ngModelChange)="updateRow(i, { clockOut: $event })" /></label>
-          <label>OT <input type="number" min="0" step="0.5" [ngModel]="row.overtimeHours" (ngModelChange)="updateRow(i, { overtimeHours: $event })" /></label>
+          <label>
+            เข้า
+            <input
+              type="time"
+              [disabled]="row.lockedByOtherJob"
+              [ngModel]="row.clockIn"
+              (ngModelChange)="updateRow(i, { clockIn: $event })"
+            />
+          </label>
+          <label>
+            ออก
+            <input
+              type="time"
+              [disabled]="row.lockedByOtherJob"
+              [ngModel]="row.clockOut"
+              (ngModelChange)="updateRow(i, { clockOut: $event })"
+            />
+          </label>
+          <label>
+            OT
+            <input
+              type="number"
+              min="0"
+              step="0.5"
+              [disabled]="row.lockedByOtherJob"
+              [ngModel]="row.overtimeHours"
+              (ngModelChange)="updateRow(i, { overtimeHours: $event })"
+            />
+          </label>
         </div>
         @if (row.error) {
           <small>{{ row.error }}</small>
