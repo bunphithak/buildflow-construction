@@ -17,7 +17,7 @@ import { map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../auth/auth.service';
 import { COLLECTIONS } from '../constants/collections';
-import { AppUser, UserWriteData, normalizeUserRole } from '../models';
+import { AppUser, UserWriteData, normalizeAssignedJobIds, normalizeUserRole } from '../models';
 import { omitUndefined } from '../utils/form.util';
 import {
   isValidUsername,
@@ -95,6 +95,7 @@ export class UserService {
             displayName: data.displayName.trim(),
             role: data.role,
             employeeId: data.employeeId,
+            assignedJobIds: data.role === 'MANAGER' ? normalizeAssignedJobIds(data.assignedJobIds) : [],
             isActive: data.isActive,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
@@ -135,6 +136,11 @@ export class UserService {
       payload['employeeId'] = data.employeeId;
     } else {
       payload['employeeId'] = deleteField();
+    }
+    if (data.role === 'MANAGER') {
+      payload['assignedJobIds'] = normalizeAssignedJobIds(data.assignedJobIds);
+    } else {
+      payload['assignedJobIds'] = deleteField();
     }
     await updateDoc(doc(this.firestore, COLLECTIONS.users, uid), payload as DocumentData);
   }
@@ -217,6 +223,7 @@ export class UserService {
       displayName: String(row['displayName'] ?? row['username'] ?? row['email'] ?? ''),
       role: normalizeUserRole(row['role']),
       employeeId: row['employeeId'] ? String(row['employeeId']) : undefined,
+      assignedJobIds: normalizeAssignedJobIds(row['assignedJobIds']),
       photoUrl: row['photoUrl'] ? String(row['photoUrl']) : undefined,
       isActive: row['isActive'] !== false,
     };

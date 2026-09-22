@@ -73,6 +73,36 @@
       </label>
     </section>
 
+    @if (form.controls.role.value === 'MANAGER') {
+      <section class="card">
+        <h2>งานที่ดูแล</h2>
+        <p class="hint">ผู้จัดการจะเห็นเฉพาะ Job ที่เลือกในหน้าลงเวลาวันนี้</p>
+        @if (jobOptions().length === 0) {
+          <p class="hint">ยังไม่มีงานที่ยังเปิดอยู่</p>
+        } @else {
+          <label class="check job-all">
+            <input type="checkbox" [checked]="allJobsAssigned()" (change)="onToggleAllJobs($event)" />
+            เลือกทั้งหมด
+          </label>
+          <div class="job-list">
+            @for (job of jobOptions(); track job.id) {
+              <label class="check">
+                <input
+                  type="checkbox"
+                  [checked]="isJobAssigned(job.id)"
+                  (change)="onToggleJob(job.id, $event)"
+                />
+                <span>
+                  {{ job.jobCode }} · {{ job.jobName }}
+                  <small>{{ jobStatusLabels[job.status] }}</small>
+                </span>
+              </label>
+            }
+          </div>
+        }
+      </section>
+    }
+
     @if (formError(); as message) {
       <p class="form-error">{{ message }}</p>
     }

@@ -1,6 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/auth/auth.service';
 import { Expense } from '../../../core/models';
 import { ExpenseCategoryService } from '../../../core/services/expense-category.service';
 import { ExpenseService, mapExpenseError } from '../../../core/services/expense.service';
@@ -33,6 +34,7 @@ export class ExpenseListComponent implements OnInit {
   private readonly expenseService = inject(ExpenseService);
   private readonly categoryService = inject(ExpenseCategoryService);
   readonly jobService = inject(JobService);
+  private readonly authService = inject(AuthService);
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly toast = inject(ToastService);
 
@@ -47,12 +49,15 @@ export class ExpenseListComponent implements OnInit {
 
   readonly categories = computed(() => this.categoryService.categories());
 
+  readonly jobOptions = computed(() => this.authService.filterManagedJobs(this.jobService.jobs()));
+
   readonly filtered = computed(() => {
     const keyword = this.search().trim().toLowerCase();
     const jobId = this.jobFilter();
     const categoryId = this.categoryFilter();
     return this.expenses().filter((item) => {
       const matchesJob = !jobId || item.jobId === jobId;
+      const matchesManaged = this.authService.canManageJob(item.jobId);
       const matchesCategory = !categoryId || item.categoryId === categoryId;
       const matchesKeyword =
         !keyword ||
@@ -60,7 +65,7 @@ export class ExpenseListComponent implements OnInit {
           .join(' ')
           .toLowerCase()
           .includes(keyword);
-      return matchesJob && matchesCategory && matchesKeyword;
+      return matchesJob && matchesManaged && matchesCategory && matchesKeyword;
     });
   });
 

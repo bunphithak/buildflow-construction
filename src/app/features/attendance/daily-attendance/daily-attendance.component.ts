@@ -90,6 +90,23 @@ export class DailyAttendanceComponent {
   readonly allSelected = computed(
     () => this.rows().length > 0 && this.rows().every((row) => row.selected),
   );
+  readonly selectedSavedCount = computed(
+    () => this.rows().filter((row) => row.selected && row.attendanceId).length,
+  );
+  readonly saveLabel = computed(() => {
+    const selected = this.selectedCount();
+    const savedSelected = this.selectedSavedCount();
+    if (selected === 0) {
+      return 'บันทึกการลงเวลา';
+    }
+    if (savedSelected === selected) {
+      return `อัปเดตการลงเวลา ${selected} คน`;
+    }
+    if (savedSelected > 0) {
+      return `บันทึก/อัปเดต ${selected} คน`;
+    }
+    return `บันทึกการลงเวลา ${selected} คน`;
+  });
 
   constructor() {
     const date = this.route.snapshot.queryParamMap.get('date');
@@ -231,14 +248,25 @@ export class DailyAttendanceComponent {
 
     this.saving.set(true);
     try {
-      const existing = await this.attendanceService.getAttendancesByJobAndDate(
-        jobId,
-        new Date(`${workDate}T00:00:00`),
+      const savedIds = await this.attendanceService.saveDailyAttendance(records);
+      this.rows.update((rows) =>
+        rows.map((row) => {
+          const attendanceId = savedIds.get(row.employeeId);
+          return attendanceId
+            ? { ...row, attendanceId, error: undefined }
+            : { ...row, error: undefined };
+        }),
       );
-      const existingMap = new Map(existing.map((item) => [item.employeeId, item]));
-      await this.attendanceService.saveDailyAttendance(records, existingMap);
-      this.toast.success(`บันทึกการลงเวลา ${records.length} คนสำเร็จ`);
-      await this.loadEmployees();
+      const updated = records.filter((item) =>
+        selected.some((row) => row.employeeId === item.employeeId && row.attendanceId),
+      ).length;
+      if (updated === records.length) {
+        this.toast.success(`อัปเดตการลงเวลา ${records.length} คนสำเร็จ`);
+      } else if (updated > 0) {
+        this.toast.success(`บันทึก ${records.length - updated} คน และอัปเดต ${updated} คนสำเร็จ`);
+      } else {
+        this.toast.success(`บันทึกการลงเวลา ${records.length} คนสำเร็จ`);
+      }
     } catch (error) {
       this.toast.error(error instanceof Error ? error.message : 'บันทึกไม่สำเร็จ');
     } finally {

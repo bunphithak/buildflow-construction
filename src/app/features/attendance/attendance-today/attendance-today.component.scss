@@ -27,6 +27,20 @@
   color: var(--color-muted);
 }
 
+.record {
+  font-weight: 700;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.record.saved {
+  color: var(--color-success);
+}
+
+.record.pending {
+  color: var(--color-muted);
+}
+
 .quick {
   margin-bottom: 1rem;
 }
@@ -67,7 +81,7 @@ select {
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 960px;
+  min-width: 1040px;
 
   th,
   td {
@@ -81,6 +95,10 @@ table {
   select {
     min-width: 90px;
   }
+}
+
+.record-col {
+  white-space: nowrap;
 }
 
 .invalid {

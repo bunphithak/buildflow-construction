@@ -3,11 +3,8 @@ import { toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { filter, firstValueFrom, take } from 'rxjs';
-import { Attendance, Employee, EMPLOYMENT_TYPE_LABELS, Payroll } from '../../../core/models';
-import { AdvanceService } from '../../../core/services/advance.service';
-import { AttendanceService } from '../../../core/services/attendance.service';
+import { Employee, EMPLOYMENT_TYPE_LABELS, Payroll } from '../../../core/models';
 import { EmployeeService } from '../../../core/services/employee.service';
-import { PayrollCalculationService } from '../../../core/services/payroll-calculation.service';
 import { PayrollService, mapPayrollError } from '../../../core/services/payroll.service';
 import { formatBaht, formatAmount, toDateInputValue } from '../../../core/utils/form.util';
 import {
@@ -16,7 +13,6 @@ import {
   PayrollCutPreset,
   payrollCutRange,
 } from '../../../core/utils/datetime.util';
-import { calculatePayrollTotals, hasPayableWork } from '../../../core/utils/payroll.util';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
@@ -43,9 +39,6 @@ interface PreviewRow {
 })
 export class PayrollGenerateComponent implements OnInit {
   private readonly employeeService = inject(EmployeeService);
-  private readonly attendanceService = inject(AttendanceService);
-  private readonly advanceService = inject(AdvanceService);
-  private readonly calculation = inject(PayrollCalculationService);
   private readonly payrollService = inject(PayrollService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
@@ -64,6 +57,7 @@ export class PayrollGenerateComponent implements OnInit {
   readonly months = Array.from({ length: 12 }, (_, index) => index + 1);
 
   private readonly employeesLoaded$ = toObservable(this.employeeService.loaded);
+  private previewRequest = 0;
 
   async ngOnInit(): Promise<void> {
     this.syncPayDate();
@@ -119,52 +113,29 @@ export class PayrollGenerateComponent implements OnInit {
   }
 
   async preview(): Promise<void> {
+    const request = ++this.previewRequest;
     this.loading.set(true);
     try {
       const { start, end } = this.range();
       if (start.getTime() > end.getTime()) {
         this.toast.error('วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด');
-        this.rows.set([]);
+        if (request === this.previewRequest) {
+          this.rows.set([]);
+        }
         return;
       }
-      const employees = this.employeeService.employees().filter((item) => item.status === 'ACTIVE');
-      const previews: PreviewRow[] = [];
-      for (const employee of employees) {
-        const existing = await this.payrollService.findPayrollByRange(employee.id, start, end);
-        const attendances: Attendance[] = await this.attendanceService.getAttendancesByEmployeeAndDateRange(
-          employee.id,
-          start,
-          end,
-        );
-        const pending = await this.advanceService.getPendingByEmployee(employee.id);
-        const summary = this.calculation.summarizeForEmployee(employee, attendances, { start, end });
-        if (!hasPayableWork(summary) && !existing) {
-          continue;
-        }
-        const totals = calculatePayrollTotals(
-          summary.basePay,
-          summary.overtimePay,
-          [],
-          pending.reduce((sum, item) => sum + item.amount, 0),
-        );
-        previews.push({
-          employee,
-          existing: existing ?? undefined,
-          workDays: summary.totalWorkDays,
-          halfDays: summary.totalHalfDays,
-          overtimeHours: summary.totalOvertimeHours,
-          basePay: summary.basePay,
-          overtimePay: summary.overtimePay,
-          advance: totals.advanceDeduction,
-          netPay: totals.netPay,
-        });
+      const previews = await this.payrollService.previewForPeriod(start, end);
+      if (request !== this.previewRequest) {
+        return;
       }
       this.rows.set(previews);
     } catch (error) {
       console.error(error);
       this.toast.error('ไม่สามารถโหลดตัวอย่าง Payroll ได้');
     } finally {
-      this.loading.set(false);
+      if (request === this.previewRequest) {
+        this.loading.set(false);
+      }
     }
   }
 

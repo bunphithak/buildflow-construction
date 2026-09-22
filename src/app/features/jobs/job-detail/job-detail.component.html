@@ -172,7 +172,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (item of jobAttendances(); track item.id) {
+              @for (item of pagedAttendances(); track item.id) {
                 <tr>
                   <td>{{ item.workDate.toDate() | thaiDate:'short' }}</td>
                   <td>{{ employeeName(item.employeeId) }}</td>
@@ -185,6 +185,59 @@
               }
             </tbody>
           </table>
+        </div>
+        <div class="pager">
+          <p>{{ attendanceRangeLabel() }}</p>
+          <label class="page-size">
+            ต่อหน้า
+            <select [ngModel]="attendancePageSize()" (ngModelChange)="setAttendancePageSize(+$event)">
+              @for (size of attendancePageSizes; track size) {
+                <option [ngValue]="size">{{ size }}</option>
+              }
+            </select>
+          </label>
+          <div class="pager-buttons">
+            <button
+              type="button"
+              class="btn btn-ghost"
+              [disabled]="attendanceCurrentPage() === 1"
+              (click)="goToAttendancePage(attendanceCurrentPage() - 1)"
+            >
+              ก่อนหน้า
+            </button>
+            @if (attendancePageNumbers()[0] > 1) {
+              <button type="button" class="page-btn" (click)="goToAttendancePage(1)">1</button>
+              @if (attendancePageNumbers()[0] > 2) {
+                <span class="ellipsis">…</span>
+              }
+            }
+            @for (item of attendancePageNumbers(); track item) {
+              <button
+                type="button"
+                class="page-btn"
+                [class.active]="item === attendanceCurrentPage()"
+                (click)="goToAttendancePage(item)"
+              >
+                {{ item }}
+              </button>
+            }
+            @if (attendancePageNumbers()[attendancePageNumbers().length - 1] < attendanceTotalPages()) {
+              @if (attendancePageNumbers()[attendancePageNumbers().length - 1] < attendanceTotalPages() - 1) {
+                <span class="ellipsis">…</span>
+              }
+              <button type="button" class="page-btn" (click)="goToAttendancePage(attendanceTotalPages())">
+                {{ attendanceTotalPages() }}
+              </button>
+            }
+            <button
+              type="button"
+              class="btn btn-ghost"
+              [disabled]="attendanceCurrentPage() === attendanceTotalPages()"
+              (click)="goToAttendancePage(attendanceCurrentPage() + 1)"
+            >
+              ถัดไป
+            </button>
+          </div>
         </div>
       </section>
     }

@@ -12,7 +12,7 @@ import { FirebaseError } from 'firebase/app';
 import { filter, map, of, switchMap, take } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { COLLECTIONS } from '../constants/collections';
-import { AppUser, UserRole, normalizeUserRole } from '../models';
+import { AppUser, UserRole, normalizeAssignedJobIds, normalizeUserRole } from '../models';
 import { toAuthEmail } from '../utils/auth-login.util';
 
 @Injectable({
@@ -98,6 +98,27 @@ export class AuthService {
     return !!role && roles.includes(role);
   }
 
+  canManageJob(jobId: string): boolean {
+    if (!jobId) {
+      return false;
+    }
+    if (this.hasRole(['ADMIN'])) {
+      return true;
+    }
+    if (!this.hasRole(['MANAGER'])) {
+      return false;
+    }
+    return (this.currentUser()?.assignedJobIds ?? []).includes(jobId);
+  }
+
+  filterManagedJobs<T extends { id: string }>(jobs: readonly T[]): T[] {
+    if (this.hasRole(['ADMIN'])) {
+      return [...jobs];
+    }
+    const allowed = new Set(this.currentUser()?.assignedJobIds ?? []);
+    return jobs.filter((job) => allowed.has(job.id));
+  }
+
   homePath(): string {
     return this.hasRole(['MANAGER']) ? '/attendance/today' : '/dashboard';
   }
@@ -144,6 +165,7 @@ export class AuthService {
       displayName: data.displayName || firebaseUser.displayName || firebaseUser.email || '',
       role: normalizeUserRole(data.role),
       employeeId: data.employeeId,
+      assignedJobIds: normalizeAssignedJobIds(data.assignedJobIds),
       photoUrl: data.photoUrl,
       isActive: data.isActive !== false,
       createdAt: data.createdAt,

@@ -57,6 +57,14 @@ export class UserListComponent {
     });
   });
 
+  assignedJobsLabel(user: AppUser): string {
+    if (user.role !== 'MANAGER') {
+      return 'ทุกงาน';
+    }
+    const count = user.assignedJobIds.length;
+    return count === 0 ? 'ยังไม่กำหนด' : `${count} งาน`;
+  }
+
   employeeName(employeeId?: string): string {
     if (!employeeId) {
       return '-';

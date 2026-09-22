@@ -2,12 +2,14 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
+  JOB_STATUS_LABELS,
   ROLE_MENUS,
   USER_ROLE_LABELS,
   USER_ROLES,
   UserRole,
 } from '../../../core/models';
 import { EmployeeService } from '../../../core/services/employee.service';
+import { JobService } from '../../../core/services/job.service';
 import { UserService, mapUserError } from '../../../core/services/user.service';
 import { loginId, normalizeUsername } from '../../../core/utils/auth-login.util';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
@@ -27,6 +29,7 @@ export class UserFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly userService = inject(UserService);
   private readonly employeeService = inject(EmployeeService);
+  private readonly jobService = inject(JobService);
   private readonly toast = inject(ToastService);
 
   readonly uid = this.route.snapshot.paramMap.get('uid');
@@ -35,6 +38,8 @@ export class UserFormComponent implements OnInit {
   readonly formError = signal<string | null>(null);
   readonly roles = USER_ROLES;
   readonly roleLabels = USER_ROLE_LABELS;
+  readonly jobStatusLabels = JOB_STATUS_LABELS;
+  readonly assignedJobIds = signal<string[]>([]);
 
   readonly form = this.fb.nonNullable.group({
     displayName: ['', Validators.required],
@@ -56,6 +61,13 @@ export class UserFormComponent implements OnInit {
       .employees()
       .filter((item) => item.status === 'ACTIVE' && !used.has(item.id));
   });
+
+  readonly jobOptions = computed(() =>
+    this.jobService
+      .jobs()
+      .filter((job) => job.status !== 'CLOSED' && job.status !== 'CANCELLED')
+      .sort((a, b) => a.jobCode.localeCompare(b.jobCode, 'th')),
+  );
 
   get isEdit(): boolean {
     return !!this.uid;
@@ -95,6 +107,46 @@ export class UserFormComponent implements OnInit {
     }, 80);
   }
 
+  isJobAssigned(jobId: string): boolean {
+    return this.assignedJobIds().includes(jobId);
+  }
+
+  toggleJob(jobId: string, checked: boolean): void {
+    this.assignedJobIds.update((ids) => {
+      if (checked) {
+        return ids.includes(jobId) ? ids : [...ids, jobId];
+      }
+      return ids.filter((id) => id !== jobId);
+    });
+  }
+
+  toggleAllJobs(checked: boolean): void {
+    const hidden = this.hiddenAssignedJobIds();
+    this.assignedJobIds.set(
+      checked ? [...hidden, ...this.jobOptions().map((job) => job.id)] : hidden,
+    );
+  }
+
+  onToggleJob(jobId: string, event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.toggleJob(jobId, target.checked);
+  }
+
+  onToggleAllJobs(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.toggleAllJobs(target.checked);
+  }
+
+  allJobsAssigned(): boolean {
+    const jobs = this.jobOptions();
+    return jobs.length > 0 && jobs.every((job) => this.assignedJobIds().includes(job.id));
+  }
+
+  private hiddenAssignedJobIds(): string[] {
+    const visible = new Set(this.jobOptions().map((job) => job.id));
+    return this.assignedJobIds().filter((id) => !visible.has(id));
+  }
+
   hasError(control: 'displayName' | 'username' | 'password', error: string): boolean {
     const field = this.form.controls[control];
     return field.touched && field.hasError(error);
@@ -113,6 +165,7 @@ export class UserFormComponent implements OnInit {
       displayName: value.displayName.trim(),
       role: value.role,
       employeeId: value.employeeId || undefined,
+      assignedJobIds: value.role === 'MANAGER' ? this.assignedJobIds() : [],
       isActive: value.isActive,
       password: value.password,
     };
@@ -140,6 +193,7 @@ export class UserFormComponent implements OnInit {
     email: string;
     role: UserRole;
     employeeId?: string;
+    assignedJobIds?: string[];
     isActive: boolean;
   }): void {
     this.form.patchValue({
@@ -149,5 +203,6 @@ export class UserFormComponent implements OnInit {
       employeeId: user.employeeId ?? '',
       isActive: user.isActive,
     });
+    this.assignedJobIds.set(user.assignedJobIds ?? []);
   }
 }

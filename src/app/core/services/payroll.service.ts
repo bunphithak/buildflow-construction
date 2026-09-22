@@ -111,9 +111,60 @@ export class PayrollService {
   }
 
   async findPayrollByRange(employeeId: string, start: Date, end: Date): Promise<Payroll | null> {
-    const key = payrollPeriodKey(start, end);
-    const rows = await this.getPayrollsByEmployee(employeeId);
-    return rows.find((item) => item.periodKey === key && item.status !== 'CANCELLED') ?? null;
+    const rows = await this.getPayrollsByPeriodKey(payrollPeriodKey(start, end));
+    return rows.find((item) => item.employeeId === employeeId && item.status !== 'CANCELLED') ?? null;
+  }
+
+  async getPayrollsByPeriodKey(periodKey: string): Promise<Payroll[]> {
+    const snapshot = await getDocs(query(this.payrollsRef, where('periodKey', '==', periodKey)));
+    return snapshot.docs.map((item) => this.mapPayroll({ id: item.id, ...item.data() }));
+  }
+
+  async previewForPeriod(start: Date, end: Date): Promise<
+    Array<{
+      employee: Employee;
+      existing?: Payroll;
+      workDays: number;
+      halfDays: number;
+      overtimeHours: number;
+      basePay: number;
+      overtimePay: number;
+      advance: number;
+      netPay: number;
+    }>
+  > {
+    const { employees, attendancesByEmployee, payrollByEmployee, pendingByEmployee } =
+      await this.loadPeriodContext(start, end);
+    const previews = [];
+    for (const employee of employees) {
+      const existing = payrollByEmployee.get(employee.id);
+      const summary = this.calculation.summarizeForEmployee(
+        employee,
+        attendancesByEmployee.get(employee.id) ?? [],
+        { start, end },
+      );
+      if (!hasPayableWork(summary) && !existing) {
+        continue;
+      }
+      const totals = calculatePayrollTotals(
+        summary.basePay,
+        summary.overtimePay,
+        [],
+        this.sumAdvances(pendingByEmployee.get(employee.id) ?? []),
+      );
+      previews.push({
+        employee,
+        existing,
+        workDays: summary.totalWorkDays,
+        halfDays: summary.totalHalfDays,
+        overtimeHours: summary.totalOvertimeHours,
+        basePay: summary.basePay,
+        overtimePay: summary.overtimePay,
+        advance: totals.advanceDeduction,
+        netPay: totals.netPay,
+      });
+    }
+    return previews;
   }
 
   payrollDateRange(payroll: Payroll): { start: Date; end: Date } {
@@ -141,22 +192,17 @@ export class PayrollService {
   }> {
     const { start, end } = range ?? monthRangeBangkok(year, month);
     const periodKey = payrollPeriodKey(start, end);
-    const employees = this.employeeService
-      .employees()
-      .filter((item) => item.status === 'ACTIVE' && (!employeeIds || employeeIds.includes(item.id)));
+    const { employees, attendancesByEmployee, payrollByEmployee, pendingByEmployee } =
+      await this.loadPeriodContext(start, end, employeeIds);
     const existing: Payroll[] = [];
-    const toCreate: { employee: Employee; rows: Attendance[] }[] = [];
+    const toCreate: { employee: Employee; rows: Attendance[]; pending: EmployeeAdvance[] }[] = [];
     for (const employee of employees) {
-      const found = await this.findPayrollByRange(employee.id, start, end);
+      const found = payrollByEmployee.get(employee.id);
       if (found) {
         existing.push(found);
         continue;
       }
-      const rows = await this.attendanceService.getAttendancesByEmployeeAndDateRange(
-        employee.id,
-        start,
-        end,
-      );
+      const rows = attendancesByEmployee.get(employee.id) ?? [];
       const summary = this.calculation.summarize(
         rows,
         snapshotEmployeeRates(employee),
@@ -165,7 +211,7 @@ export class PayrollService {
       if (!hasPayableWork(summary)) {
         continue;
       }
-      toCreate.push({ employee, rows });
+      toCreate.push({ employee, rows, pending: pendingByEmployee.get(employee.id) ?? [] });
     }
 
     const created: string[] = [];
@@ -175,7 +221,7 @@ export class PayrollService {
       for (const item of chunk) {
         const employee = item.employee;
         const rows = item.rows;
-        const pending = await this.advanceService.getPendingByEmployee(employee.id);
+        const pending = item.pending;
         const rates = snapshotEmployeeRates(employee);
         const summary = this.calculation.summarize(rows, rates, { start, end });
         const totals = calculatePayrollTotals(summary.basePay, summary.overtimePay, [], this.sumAdvances(pending));
@@ -591,6 +637,52 @@ export class PayrollService {
 
   private sumAdvances(rows: EmployeeAdvance[]): number {
     return roundMoney(rows.reduce((sum, item) => sum + item.amount, 0));
+  }
+
+  private async loadPeriodContext(
+    start: Date,
+    end: Date,
+    employeeIds?: string[],
+  ): Promise<{
+    employees: Employee[];
+    attendancesByEmployee: Map<string, Attendance[]>;
+    payrollByEmployee: Map<string, Payroll>;
+    pendingByEmployee: Map<string, EmployeeAdvance[]>;
+  }> {
+    const employees = this.employeeService
+      .employees()
+      .filter((item) => item.status === 'ACTIVE' && (!employeeIds || employeeIds.includes(item.id)));
+    const [attendances, payrolls, pending] = await Promise.all([
+      this.attendanceService.getAttendancesByDateRange(start, end),
+      this.getPayrollsByPeriodKey(payrollPeriodKey(start, end)),
+      this.advanceService.getPendingAdvances(),
+    ]);
+    const payrollByEmployee = new Map<string, Payroll>();
+    for (const payroll of payrolls) {
+      if (payroll.status === 'CANCELLED' || payrollByEmployee.has(payroll.employeeId)) {
+        continue;
+      }
+      payrollByEmployee.set(payroll.employeeId, payroll);
+    }
+    return {
+      employees,
+      attendancesByEmployee: this.groupByEmployeeId(attendances),
+      payrollByEmployee,
+      pendingByEmployee: this.groupByEmployeeId(pending),
+    };
+  }
+
+  private groupByEmployeeId<T extends { employeeId: string }>(rows: T[]): Map<string, T[]> {
+    const map = new Map<string, T[]>();
+    for (const row of rows) {
+      const list = map.get(row.employeeId);
+      if (list) {
+        list.push(row);
+      } else {
+        map.set(row.employeeId, [row]);
+      }
+    }
+    return map;
   }
 
   private async requireEditable(id: string): Promise<Payroll> {

@@ -48,6 +48,7 @@
             <th>ชื่อผู้ใช้</th>
             <th>บทบาท</th>
             <th>พนักงานที่ผูก</th>
+            <th>งานที่ดูแล</th>
             <th>สถานะ</th>
             <th>จัดการ</th>
           </tr>
@@ -59,6 +60,7 @@
               <td>{{ loginName(user) }}</td>
               <td>{{ roleLabels[user.role] }}</td>
               <td>{{ employeeName(user.employeeId) }}</td>
+              <td>{{ assignedJobsLabel(user) }}</td>
               <td>{{ user.isActive ? 'ใช้งาน' : 'ปิดใช้งาน' }}</td>
               <td class="actions icon-actions">
                 <a [routerLink]="['/settings/users', user.uid, 'edit']" class="icon-btn" title="แก้ไข" aria-label="แก้ไข">

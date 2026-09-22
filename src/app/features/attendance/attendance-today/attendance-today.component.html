@@ -20,6 +20,13 @@
   </label>
 </section>
 
+@if (showNoAssignedJobs()) {
+  <app-empty-state
+    title="ยังไม่มี Job ที่ได้รับมอบหมาย"
+    message="ติดต่อผู้ดูแลระบบเพื่อกำหนดงานที่ดูแลในหน้าผู้ใช้"
+  />
+}
+
 @if (loaded() && selectedJob(); as job) {
   <p class="context">วันนี้ · {{ job.jobCode }} {{ job.jobName }}</p>
 }
@@ -58,7 +65,7 @@
             <th>เลือก</th>
             <th>รหัส</th>
             <th>ชื่อ</th>
-            <th>ตำแหน่ง</th>
+            <th class="record-col">ลงเวลา</th>
             <th>สถานะ</th>
             <th>เข้า</th>
             <th>ออก</th>
@@ -75,7 +82,13 @@
               </td>
               <td>{{ row.employeeCode }}</td>
               <td>{{ row.fullName }}</td>
-              <td>{{ row.position }}</td>
+              <td class="record-col">
+                @if (row.attendanceId) {
+                  <span class="record saved">ลงแล้ว</span>
+                } @else {
+                  <span class="record pending">ยังไม่ลง</span>
+                }
+              </td>
               <td>
                 <select [ngModel]="row.status" (ngModelChange)="onStatusChange(i, $event)">
                   @for (status of statuses; track status) {
@@ -107,7 +120,15 @@
           <input type="checkbox" [ngModel]="row.selected" (ngModelChange)="updateRow(i, { selected: $event })" />
           <strong>{{ row.fullName }}</strong>
         </label>
-        <p>{{ row.employeeCode }} · {{ row.position }}</p>
+        <p>
+          {{ row.employeeCode }}
+          ·
+          @if (row.attendanceId) {
+            <span class="record saved">ลงแล้ว</span>
+          } @else {
+            <span class="record pending">ยังไม่ลง</span>
+          }
+        </p>
         <label>
           สถานะ
           <select [ngModel]="row.status" (ngModelChange)="onStatusChange(i, $event)">
@@ -130,7 +151,7 @@
 
   <div class="save-bar">
     <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">
-      {{ saving() ? 'กำลังบันทึก...' : 'บันทึกการลงเวลา ' + selectedCount() + ' คน' }}
+      {{ saving() ? 'กำลังบันทึก...' : saveLabel() }}
     </button>
   </div>
 }

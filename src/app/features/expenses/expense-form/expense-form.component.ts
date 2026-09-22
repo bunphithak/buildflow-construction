@@ -79,7 +79,7 @@ export class ExpenseFormComponent implements OnInit, OnDestroy {
   });
 
   readonly selectableJobs = computed(() => {
-    const jobs = this.jobService.jobs();
+    const jobs = this.authService.filterManagedJobs(this.jobService.jobs());
     const selectedId = this.selectedJobId();
     if (this.isEdit) {
       return jobs;

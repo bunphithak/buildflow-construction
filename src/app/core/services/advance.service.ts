@@ -59,6 +59,11 @@ export class AdvanceService {
     return this.sort(snapshot.docs.map((item) => this.mapAdvance({ id: item.id, ...item.data() })));
   }
 
+  async getPendingAdvances(): Promise<EmployeeAdvance[]> {
+    const snapshot = await getDocs(query(this.advancesRef, where('status', '==', 'PENDING')));
+    return this.sort(snapshot.docs.map((item) => this.mapAdvance({ id: item.id, ...item.data() })));
+  }
+
   async createAdvance(data: EmployeeAdvanceWriteData): Promise<string> {
     if (!(data.amount > 0) || !data.employeeId) {
       throw new Error('INVALID_ADVANCE');

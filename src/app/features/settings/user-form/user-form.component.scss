@@ -50,6 +50,39 @@ small,
   color: var(--color-text);
 }
 
+.check {
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: start;
+  align-items: start;
+  gap: 0.55rem;
+  font-weight: 600;
+}
+
+.job-all {
+  margin: 0.35rem 0 0.65rem;
+}
+
+.job-list {
+  display: grid;
+  gap: 0.45rem;
+  max-height: 22rem;
+  overflow: auto;
+  padding: 0.2rem 0;
+}
+
+.job-list small {
+  display: block;
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.job-list input,
+.job-all input {
+  width: auto;
+  margin-top: 0.2rem;
+}
+
 .actions {
   display: flex;
   gap: 0.7rem;

@@ -47,7 +47,7 @@
     Job
     <select [ngModel]="jobFilter()" (ngModelChange)="onJobChange($event)">
       <option value="">ทั้งหมด</option>
-      @for (job of jobService.jobs(); track job.id) {
+      @for (job of jobOptions(); track job.id) {
         <option [value]="job.id">{{ job.jobCode }} · {{ job.jobName }}</option>
       }
     </select>

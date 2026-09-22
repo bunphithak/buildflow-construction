@@ -29,6 +29,13 @@ export function normalizeUserRole(role: unknown): UserRole {
   return role === 'ADMIN' ? 'ADMIN' : 'MANAGER';
 }
 
+export function normalizeAssignedJobIds(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return [...new Set(value.map((item) => String(item ?? '').trim()).filter(Boolean))];
+}
+
 export interface AppUser {
   uid: string;
   email: string;
@@ -36,6 +43,7 @@ export interface AppUser {
   displayName: string;
   role: UserRole;
   employeeId?: string;
+  assignedJobIds: string[];
   photoUrl?: string;
   isActive: boolean;
   createdAt?: FirestoreTimestamp;
@@ -47,6 +55,7 @@ export interface UserWriteData {
   displayName: string;
   role: UserRole;
   employeeId?: string;
+  assignedJobIds: string[];
   isActive: boolean;
   password?: string;
 }

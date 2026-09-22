@@ -30,7 +30,6 @@ interface TodayRow {
   employeeId: string;
   employeeCode: string;
   fullName: string;
-  position: string;
   employeeActive: boolean;
   status: AttendanceStatus;
   clockIn: string;
@@ -82,15 +81,40 @@ export class AttendanceTodayComponent {
   readonly saving = signal(false);
   readonly loaded = signal(false);
   readonly canViewHistory = computed(() => this.authService.hasRole(['ADMIN']));
+  readonly showNoAssignedJobs = computed(
+    () =>
+      this.authService.hasRole(['MANAGER']) &&
+      this.jobService.loaded() &&
+      this.openJobs().length === 0,
+  );
 
   readonly openJobs = computed(() =>
-    this.jobService.jobs().filter((job) => job.status === 'OPEN' || job.status === 'IN_PROGRESS'),
+    this.authService.filterManagedJobs(
+      this.jobService.jobs().filter((job) => job.status === 'OPEN' || job.status === 'IN_PROGRESS'),
+    ),
   );
 
   readonly selectedCount = computed(() => this.rows().filter((row) => row.selected).length);
   readonly allSelected = computed(
     () => this.rows().length > 0 && this.rows().every((row) => row.selected),
   );
+  readonly selectedSavedCount = computed(
+    () => this.rows().filter((row) => row.selected && row.attendanceId).length,
+  );
+  readonly saveLabel = computed(() => {
+    const selected = this.selectedCount();
+    const savedSelected = this.selectedSavedCount();
+    if (selected === 0) {
+      return 'บันทึกการลงเวลา';
+    }
+    if (savedSelected === selected) {
+      return `อัปเดตการลงเวลา ${selected} คน`;
+    }
+    if (savedSelected > 0) {
+      return `บันทึก/อัปเดต ${selected} คน`;
+    }
+    return `บันทึกการลงเวลา ${selected} คน`;
+  });
 
   constructor() {
     void this.init();
@@ -151,6 +175,13 @@ export class AttendanceTodayComponent {
       this.toast.error('กรุณาเลือก Job');
       return;
     }
+    if (!this.authService.canManageJob(jobId)) {
+      this.toast.error('ไม่มีสิทธิ์ลงเวลาของงานนี้');
+      this.jobId.set('');
+      this.rows.set([]);
+      this.loaded.set(false);
+      return;
+    }
     this.loading.set(true);
     try {
       const date = new Date(`${this.workDate}T00:00:00`);
@@ -196,6 +227,10 @@ export class AttendanceTodayComponent {
     }
 
     const jobId = this.jobId();
+    if (!this.authService.canManageJob(jobId)) {
+      this.toast.error('ไม่มีสิทธิ์ลงเวลาของงานนี้');
+      return;
+    }
     const workDate = this.workDate;
     const records: AttendanceWriteData[] = [];
     const nextRows = this.rows().map((row) => ({ ...row, error: undefined }));
@@ -238,11 +273,25 @@ export class AttendanceTodayComponent {
 
     this.saving.set(true);
     try {
-      const existing = await this.loadExistingForJob(jobId, new Date(`${workDate}T00:00:00`));
-      const existingMap = new Map(existing.map((item) => [item.employeeId, item]));
-      await this.attendanceService.saveDailyAttendance(records, existingMap);
-      this.toast.success(`บันทึกการลงเวลา ${records.length} คนสำเร็จ`);
-      await this.loadEmployees();
+      const savedIds = await this.attendanceService.saveDailyAttendance(records);
+      this.rows.update((rows) =>
+        rows.map((row) => {
+          const attendanceId = savedIds.get(row.employeeId);
+          return attendanceId
+            ? { ...row, attendanceId, error: undefined }
+            : { ...row, error: undefined };
+        }),
+      );
+      const updated = records.filter((item) =>
+        selected.some((row) => row.employeeId === item.employeeId && row.attendanceId),
+      ).length;
+      if (updated === records.length) {
+        this.toast.success(`อัปเดตการลงเวลา ${records.length} คนสำเร็จ`);
+      } else if (updated > 0) {
+        this.toast.success(`บันทึก ${records.length - updated} คน และอัปเดต ${updated} คนสำเร็จ`);
+      } else {
+        this.toast.success(`บันทึกการลงเวลา ${records.length} คนสำเร็จ`);
+      }
     } catch (error) {
       this.toast.error(error instanceof Error ? error.message : 'บันทึกไม่สำเร็จ');
     } finally {
@@ -259,6 +308,10 @@ export class AttendanceTodayComponent {
   }
 
   private async init(): Promise<void> {
+    const requested = this.jobId();
+    if (requested && !this.authService.canManageJob(requested)) {
+      this.jobId.set('');
+    }
     if (this.jobId()) {
       await this.loadEmployees();
     } else if (this.openJobs().length === 1) {
@@ -281,7 +334,6 @@ export class AttendanceTodayComponent {
       employeeId: employee.id,
       employeeCode: employee.employeeCode,
       fullName: `${employee.firstName} ${employee.lastName}`.trim(),
-      position: employee.position,
       employeeActive: employee.status === 'ACTIVE',
       status: attendance?.status ?? 'PRESENT',
       clockIn: attendance?.clockIn

@@ -58,7 +58,7 @@ export class AttendanceService {
   }
 
   async getAttendancesByDate(date: Date): Promise<Attendance[]> {
-    return this.queryByDateRange(date, date);
+    return this.queryDateRange(date, date);
   }
 
   async getAttendancesByJob(jobId: string): Promise<Attendance[]> {
@@ -67,7 +67,7 @@ export class AttendanceService {
   }
 
   async getAttendancesByJobAndDate(jobId: string, date: Date): Promise<Attendance[]> {
-    return this.queryByJobThenFilterDate(jobId, date, date);
+    return this.queryByJobAndDateRange(jobId, date, date);
   }
 
   async getAttendancesByEmployee(employeeId: string): Promise<Attendance[]> {
@@ -82,15 +82,15 @@ export class AttendanceService {
     startDate: Date,
     endDate: Date,
   ): Promise<Attendance[]> {
-    return this.queryByEmployeeThenFilterDate(employeeId, startDate, endDate);
+    return this.queryByEmployeeAndDateRange(employeeId, startDate, endDate);
   }
 
   async getAttendancesByEmployeeAndDate(employeeId: string, date: Date): Promise<Attendance[]> {
-    return this.queryByEmployeeThenFilterDate(employeeId, date, date);
+    return this.queryByEmployeeAndDateRange(employeeId, date, date);
   }
 
   async getAttendancesByDateRange(startDate: Date, endDate: Date): Promise<Attendance[]> {
-    return this.queryByDateRange(startDate, endDate);
+    return this.queryDateRange(startDate, endDate);
   }
 
   async getAttendancesByJobAndDateRange(
@@ -98,7 +98,7 @@ export class AttendanceService {
     startDate: Date,
     endDate: Date,
   ): Promise<Attendance[]> {
-    return this.queryByJobThenFilterDate(jobId, startDate, endDate);
+    return this.queryByJobAndDateRange(jobId, startDate, endDate);
   }
 
   async createAttendance(data: AttendanceWriteData): Promise<string> {
@@ -118,13 +118,28 @@ export class AttendanceService {
 
   async saveDailyAttendance(
     records: AttendanceWriteData[],
-    existingByEmployeeId: Map<string, Attendance>,
-  ): Promise<void> {
+  ): Promise<Map<string, string>> {
+    const savedIds = new Map<string, string>();
+    if (records.length === 0) {
+      return savedIds;
+    }
+
+    const workDate = records[0].workDate;
+    const dayRows = await this.getAttendancesByDate(workDate);
+    const seen = new Set<string>();
     const errors: string[] = [];
+
     for (const record of records) {
-      const existing = existingByEmployeeId.get(record.employeeId);
+      if (seen.has(record.employeeId)) {
+        errors.push('มีพนักงานซ้ำในรายการที่บันทึก');
+        continue;
+      }
+      seen.add(record.employeeId);
+      const existing = dayRows.find(
+        (item) => item.employeeId === record.employeeId && item.jobId === record.jobId,
+      );
       try {
-        await this.assertCanSave(record, existing?.id);
+        this.validateWrite(record, existing?.id, dayRows);
       } catch (error) {
         errors.push(error instanceof Error ? error.message : 'ข้อมูลไม่ถูกต้อง');
       }
@@ -138,10 +153,13 @@ export class AttendanceService {
     for (const chunk of chunks) {
       const batch = writeBatch(this.firestore);
       for (const record of chunk) {
-        const existing = existingByEmployeeId.get(record.employeeId);
+        const existing = dayRows.find(
+          (item) => item.employeeId === record.employeeId && item.jobId === record.jobId,
+        );
         const ref = existing
           ? doc(this.firestore, COLLECTIONS.attendances, existing.id)
           : doc(this.attendancesRef);
+        savedIds.set(record.employeeId, ref.id);
         const payload = this.toPayload(record, ref.id, !existing, actor);
         if (existing) {
           batch.update(ref, payload as DocumentData);
@@ -151,6 +169,7 @@ export class AttendanceService {
       }
       await batch.commit();
     }
+    return savedIds;
   }
 
   async deleteAttendance(id: string): Promise<void> {
@@ -194,53 +213,30 @@ export class AttendanceService {
     clockIn: Date,
     clockOut: Date,
     excludeId?: string,
-    excludeJobId?: string,
   ): Promise<Attendance | null> {
     const rows = await this.getAttendancesByEmployeeAndDate(employeeId, workDate);
-    return (
-      rows.find((item) => {
-        if (item.id === excludeId || (excludeJobId && item.jobId === excludeJobId && item.id === excludeId)) {
-          return false;
-        }
-        if (item.id === excludeId) {
-          return false;
-        }
-        if (!item.clockIn || !item.clockOut) {
-          return false;
-        }
-        return hasTimeOverlap(clockIn, clockOut, item.clockIn.toDate(), item.clockOut.toDate());
-      }) ?? null
-    );
+    return this.findTimeOverlap(rows, employeeId, clockIn, clockOut, excludeId);
   }
 
-  private async queryByJobThenFilterDate(
+  private async queryByJobAndDateRange(
     jobId: string,
     startDate: Date,
     endDate: Date,
   ): Promise<Attendance[]> {
-    const snapshot = await getDocs(query(this.attendancesRef, where('jobId', '==', jobId)));
-    return snapshot.docs
-      .map((item) => this.mapAttendance({ id: item.id, ...item.data() }))
-      .filter((item) => this.isInWorkDateRange(item, startDate, endDate));
+    const rows = await this.getAttendancesByJob(jobId);
+    return rows.filter((item) => this.isInWorkDateRange(item, startDate, endDate));
   }
 
-  private async queryByEmployeeThenFilterDate(
+  private async queryByEmployeeAndDateRange(
     employeeId: string,
     startDate: Date,
     endDate: Date,
   ): Promise<Attendance[]> {
-    const snapshot = await getDocs(query(this.attendancesRef, where('employeeId', '==', employeeId)));
-    return snapshot.docs
-      .map((item) => this.mapAttendance({ id: item.id, ...item.data() }))
-      .filter((item) => this.isInWorkDateRange(item, startDate, endDate));
+    const rows = await this.getAttendancesByEmployee(employeeId);
+    return rows.filter((item) => this.isInWorkDateRange(item, startDate, endDate));
   }
 
-  private isInWorkDateRange(item: Attendance, startDate: Date, endDate: Date): boolean {
-    const time = item.workDate.toMillis();
-    return time >= startOfDayBangkok(startDate).getTime() && time < nextDayBangkok(endDate).getTime();
-  }
-
-  private async queryByDateRange(startDate: Date, endDate: Date): Promise<Attendance[]> {
+  private async queryDateRange(startDate: Date, endDate: Date): Promise<Attendance[]> {
     const snapshot = await getDocs(
       query(
         this.attendancesRef,
@@ -251,7 +247,21 @@ export class AttendanceService {
     return snapshot.docs.map((item) => this.mapAttendance({ id: item.id, ...item.data() }));
   }
 
+  private isInWorkDateRange(item: Attendance, startDate: Date, endDate: Date): boolean {
+    const time = item.workDate.toMillis();
+    return time >= startOfDayBangkok(startDate).getTime() && time < nextDayBangkok(endDate).getTime();
+  }
+
   private async assertCanSave(data: AttendanceWriteData, excludeId?: string): Promise<void> {
+    const dayRows = await this.getAttendancesByDate(data.workDate);
+    this.validateWrite(data, excludeId, dayRows);
+  }
+
+  private validateWrite(
+    data: AttendanceWriteData,
+    excludeId: string | undefined,
+    dayRows: Attendance[],
+  ): void {
     const needsTime = data.status === 'PRESENT' || data.status === 'HALF_DAY';
     if (needsTime && data.clockIn && data.clockOut && data.clockOut.getTime() <= data.clockIn.getTime()) {
       throw new Error(`เวลาออกงานต้องมากกว่าเวลาเข้างาน`);
@@ -266,28 +276,43 @@ export class AttendanceService {
       throw new Error('เงินเดือนต้องไม่ติดลบ');
     }
 
-    const sameJob = (await this.getAttendancesByEmployeeAndDate(data.employeeId, data.workDate)).find(
-      (item) => item.jobId === data.jobId && item.id !== excludeId,
+    const sameJob = dayRows.find(
+      (item) =>
+        item.employeeId === data.employeeId && item.jobId === data.jobId && item.id !== excludeId,
     );
     if (sameJob) {
       throw new Error('พนักงานมีรายการลงเวลาใน Job นี้แล้วสำหรับวันนี้');
     }
 
     if (data.clockIn && data.clockOut) {
-      const overlap = await this.findOverlappingAttendance(
+      const overlap = this.findTimeOverlap(
+        dayRows,
         data.employeeId,
-        data.workDate,
         data.clockIn,
         data.clockOut,
         excludeId,
       );
-      if (overlap && overlap.jobId !== data.jobId) {
-        throw new Error('พนักงานมีเวลาทำงานซ้อนกับ Job อื่น');
-      }
-      if (overlap && overlap.jobId === data.jobId && overlap.id !== excludeId) {
+      if (overlap) {
         throw new Error('พนักงานมีเวลาทำงานซ้อนกับ Job อื่น');
       }
     }
+  }
+
+  private findTimeOverlap(
+    rows: Attendance[],
+    employeeId: string,
+    clockIn: Date,
+    clockOut: Date,
+    excludeId?: string,
+  ): Attendance | null {
+    return (
+      rows.find((item) => {
+        if (item.employeeId !== employeeId || item.id === excludeId || !item.clockIn || !item.clockOut) {
+          return false;
+        }
+        return hasTimeOverlap(clockIn, clockOut, item.clockIn.toDate(), item.clockOut.toDate());
+      }) ?? null
+    );
   }
 
   private toPayload(

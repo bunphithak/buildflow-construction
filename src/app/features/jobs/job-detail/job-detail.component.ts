@@ -92,6 +92,47 @@ export class JobDetailComponent implements OnInit {
   ];
 
   readonly jobAttendances = signal<Attendance[]>([]);
+  readonly attendancePage = signal(1);
+  readonly attendancePageSize = signal(10);
+  readonly attendancePageSizes = [10, 20, 50] as const;
+  readonly sortedAttendances = computed(() =>
+    [...this.jobAttendances()].sort((a, b) => {
+      const dateDiff = b.workDate.toMillis() - a.workDate.toMillis();
+      if (dateDiff !== 0) {
+        return dateDiff;
+      }
+      return this.employeeName(a.employeeId).localeCompare(this.employeeName(b.employeeId), 'th');
+    }),
+  );
+  readonly attendanceTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.sortedAttendances().length / this.attendancePageSize())),
+  );
+  readonly attendanceCurrentPage = computed(() =>
+    Math.min(this.attendancePage(), this.attendanceTotalPages()),
+  );
+  readonly pagedAttendances = computed(() => {
+    const start = (this.attendanceCurrentPage() - 1) * this.attendancePageSize();
+    return this.sortedAttendances().slice(start, start + this.attendancePageSize());
+  });
+  readonly attendancePageNumbers = computed(() => {
+    const total = this.attendanceTotalPages();
+    const current = this.attendanceCurrentPage();
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, index) => index + 1);
+    }
+    const start = Math.max(1, Math.min(current - 2, total - 4));
+    const end = Math.min(total, start + 4);
+    return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+  });
+  readonly attendanceRangeLabel = computed(() => {
+    const total = this.sortedAttendances().length;
+    if (total === 0) {
+      return 'ไม่พบรายการ';
+    }
+    const start = (this.attendanceCurrentPage() - 1) * this.attendancePageSize() + 1;
+    const end = Math.min(total, start + this.attendancePageSize() - 1);
+    return `แสดง ${start}-${end} จาก ${total} รายการ`;
+  });
   readonly jobExpenses = signal<Expense[]>([]);
   readonly laborFilter = signal<'all' | 'month' | 'range'>('all');
   readonly laborStart = signal(toDateInputValue(new Date(new Date().getFullYear(), new Date().getMonth(), 1)));
@@ -226,6 +267,18 @@ export class JobDetailComponent implements OnInit {
 
   setTab(tab: JobTab): void {
     this.activeTab.set(tab);
+    if (tab === 'attendance') {
+      this.attendancePage.set(1);
+    }
+  }
+
+  setAttendancePageSize(value: number): void {
+    this.attendancePageSize.set(value);
+    this.attendancePage.set(1);
+  }
+
+  goToAttendancePage(page: number): void {
+    this.attendancePage.set(Math.min(Math.max(1, page), this.attendanceTotalPages()));
   }
 
   money(value: number | undefined): string {
