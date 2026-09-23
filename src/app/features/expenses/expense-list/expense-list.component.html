@@ -67,7 +67,7 @@
       type="search"
       placeholder="รายละเอียด, ร้านค้า, เลขที่เอกสาร"
       [ngModel]="search()"
-      (ngModelChange)="search.set($event)"
+      (ngModelChange)="onSearchChange($event)"
     />
   </label>
 </section>
@@ -96,7 +96,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (item of filtered(); track item.id) {
+          @for (item of pagedExpenses(); track item.id) {
             <tr>
               <td>{{ item.expenseDate.toDate() | thaiDate:'short' }}</td>
               <td>{{ jobLabel(item.jobId) }}</td>
@@ -125,6 +125,47 @@
           }
         </tbody>
       </table>
+    </div>
+    <div class="pager">
+      <p>{{ rangeLabel() }}</p>
+      <label class="page-size">
+        ต่อหน้า
+        <select [ngModel]="pageSize()" (ngModelChange)="setPageSize(+$event)">
+          @for (size of pageSizes; track size) {
+            <option [ngValue]="size">{{ size }}</option>
+          }
+        </select>
+      </label>
+      <div class="pager-buttons">
+        <button type="button" class="btn btn-ghost" [disabled]="currentPage() === 1" (click)="goToPage(currentPage() - 1)">
+          ก่อนหน้า
+        </button>
+        @if (pageNumbers()[0] > 1) {
+          <button type="button" class="page-btn" (click)="goToPage(1)">1</button>
+          @if (pageNumbers()[0] > 2) {
+            <span class="ellipsis">…</span>
+          }
+        }
+        @for (item of pageNumbers(); track item) {
+          <button
+            type="button"
+            class="page-btn"
+            [class.active]="item === currentPage()"
+            (click)="goToPage(item)"
+          >
+            {{ item }}
+          </button>
+        }
+        @if (pageNumbers()[pageNumbers().length - 1] < totalPages()) {
+          @if (pageNumbers()[pageNumbers().length - 1] < totalPages() - 1) {
+            <span class="ellipsis">…</span>
+          }
+          <button type="button" class="page-btn" (click)="goToPage(totalPages())">{{ totalPages() }}</button>
+        }
+        <button type="button" class="btn btn-ghost" [disabled]="currentPage() === totalPages()" (click)="goToPage(currentPage() + 1)">
+          ถัดไป
+        </button>
+      </div>
     </div>
   </section>
 }

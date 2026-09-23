@@ -46,6 +46,9 @@ export class ExpenseListComponent implements OnInit {
   readonly datePreset = signal<DatePreset>('month');
   readonly startDate = signal(this.monthStart());
   readonly endDate = signal(this.todayInput());
+  readonly page = signal(1);
+  readonly pageSize = signal(10);
+  readonly pageSizes = [10, 20, 50] as const;
 
   readonly categories = computed(() => this.categoryService.categories());
 
@@ -71,6 +74,32 @@ export class ExpenseListComponent implements OnInit {
 
   readonly totals = computed(() => this.expenseService.summarizeFilterTotals(this.filtered()));
 
+  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.filtered().length / this.pageSize())));
+  readonly currentPage = computed(() => Math.min(this.page(), this.totalPages()));
+  readonly pagedExpenses = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize();
+    return this.filtered().slice(start, start + this.pageSize());
+  });
+  readonly pageNumbers = computed(() => {
+    const total = this.totalPages();
+    const current = this.currentPage();
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, index) => index + 1);
+    }
+    const start = Math.max(1, Math.min(current - 2, total - 4));
+    const end = Math.min(total, start + 4);
+    return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+  });
+  readonly rangeLabel = computed(() => {
+    const total = this.filtered().length;
+    if (total === 0) {
+      return 'ไม่พบรายการ';
+    }
+    const start = (this.currentPage() - 1) * this.pageSize() + 1;
+    const end = Math.min(total, start + this.pageSize() - 1);
+    return `แสดง ${start}-${end} จาก ${total} รายการ`;
+  });
+
   async ngOnInit(): Promise<void> {
     await this.reload();
   }
@@ -92,6 +121,7 @@ export class ExpenseListComponent implements OnInit {
         rows = await this.expenseService.getExpenses();
       }
       this.expenses.set(rows);
+      this.page.set(1);
     } catch (error) {
       console.error('Failed to load expenses', error);
       this.toast.error('ไม่สามารถโหลดค่าใช้จ่ายได้');
@@ -122,6 +152,21 @@ export class ExpenseListComponent implements OnInit {
 
   onCategoryChange(value: string): void {
     this.categoryFilter.set(value);
+    this.page.set(1);
+  }
+
+  onSearchChange(value: string): void {
+    this.search.set(value);
+    this.page.set(1);
+  }
+
+  setPageSize(value: number): void {
+    this.pageSize.set(value);
+    this.page.set(1);
+  }
+
+  goToPage(page: number): void {
+    this.page.set(Math.min(Math.max(1, page), this.totalPages()));
   }
 
   onRangeChange(): void {
