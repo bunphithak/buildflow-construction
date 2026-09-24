@@ -49,6 +49,7 @@ export class ExpenseListComponent implements OnInit {
   readonly page = signal(1);
   readonly pageSize = signal(10);
   readonly pageSizes = [10, 20, 50] as const;
+  private reloadRequest = 0;
 
   readonly categories = computed(() => this.categoryService.categories());
 
@@ -105,6 +106,7 @@ export class ExpenseListComponent implements OnInit {
   }
 
   async reload(): Promise<void> {
+    const request = ++this.reloadRequest;
     this.loading.set(true);
     try {
       const preset = this.datePreset();
@@ -120,13 +122,21 @@ export class ExpenseListComponent implements OnInit {
       } else {
         rows = await this.expenseService.getExpenses();
       }
+      if (request !== this.reloadRequest) {
+        return;
+      }
       this.expenses.set(rows);
       this.page.set(1);
     } catch (error) {
+      if (request !== this.reloadRequest) {
+        return;
+      }
       console.error('Failed to load expenses', error);
       this.toast.error('ไม่สามารถโหลดค่าใช้จ่ายได้');
     } finally {
-      this.loading.set(false);
+      if (request === this.reloadRequest) {
+        this.loading.set(false);
+      }
     }
   }
 
@@ -169,7 +179,20 @@ export class ExpenseListComponent implements OnInit {
     this.page.set(Math.min(Math.max(1, page), this.totalPages()));
   }
 
-  onRangeChange(): void {
+  onStartDateChange(value: string): void {
+    if (!value || value === this.startDate()) {
+      return;
+    }
+    this.startDate.set(value);
+    this.datePreset.set('range');
+    void this.reload();
+  }
+
+  onEndDateChange(value: string): void {
+    if (!value || value === this.endDate()) {
+      return;
+    }
+    this.endDate.set(value);
     this.datePreset.set('range');
     void this.reload();
   }

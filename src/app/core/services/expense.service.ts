@@ -83,14 +83,19 @@ export class ExpenseService {
   }
 
   async getExpensesByDateRange(startDate: Date, endDate: Date): Promise<Expense[]> {
-    const snapshot = await getDocs(
-      query(
-        this.expensesRef,
-        where('expenseDate', '>=', Timestamp.fromDate(startOfDayBangkok(startDate))),
-        where('expenseDate', '<', Timestamp.fromDate(nextDayBangkok(endDate))),
-      ),
-    );
-    return this.sortByDate(snapshot.docs.map((item) => this.mapExpense({ id: item.id, ...item.data() })));
+    try {
+      const snapshot = await getDocs(
+        query(
+          this.expensesRef,
+          where('expenseDate', '>=', Timestamp.fromDate(startOfDayBangkok(startDate))),
+          where('expenseDate', '<', Timestamp.fromDate(nextDayBangkok(endDate))),
+        ),
+      );
+      return this.sortByDate(snapshot.docs.map((item) => this.mapExpense({ id: item.id, ...item.data() })));
+    } catch (error) {
+      console.warn('Expense date-range query failed, filtering in memory', error);
+      return this.filterByDateRange(await this.getExpenses(), startDate, endDate);
+    }
   }
 
   async getExpensesByJobAndDateRange(
@@ -98,15 +103,20 @@ export class ExpenseService {
     startDate: Date,
     endDate: Date,
   ): Promise<Expense[]> {
-    const snapshot = await getDocs(
-      query(
-        this.expensesRef,
-        where('jobId', '==', jobId),
-        where('expenseDate', '>=', Timestamp.fromDate(startOfDayBangkok(startDate))),
-        where('expenseDate', '<', Timestamp.fromDate(nextDayBangkok(endDate))),
-      ),
-    );
-    return this.sortByDate(snapshot.docs.map((item) => this.mapExpense({ id: item.id, ...item.data() })));
+    try {
+      const snapshot = await getDocs(
+        query(
+          this.expensesRef,
+          where('jobId', '==', jobId),
+          where('expenseDate', '>=', Timestamp.fromDate(startOfDayBangkok(startDate))),
+          where('expenseDate', '<', Timestamp.fromDate(nextDayBangkok(endDate))),
+        ),
+      );
+      return this.sortByDate(snapshot.docs.map((item) => this.mapExpense({ id: item.id, ...item.data() })));
+    } catch (error) {
+      console.warn('Expense job date-range query failed, filtering in memory', error);
+      return this.filterByDateRange(await this.getExpensesByJob(jobId), startDate, endDate);
+    }
   }
 
   async createExpense(data: ExpenseWriteData, receipt?: File): Promise<string> {
@@ -310,6 +320,17 @@ export class ExpenseService {
     if (data.unitPrice !== undefined && data.unitPrice < 0) {
       throw new Error('INVALID_UNIT_PRICE');
     }
+  }
+
+  private filterByDateRange(rows: Expense[], startDate: Date, endDate: Date): Expense[] {
+    const start = startOfDayBangkok(startDate).getTime();
+    const end = nextDayBangkok(endDate).getTime();
+    return this.sortByDate(
+      rows.filter((item) => {
+        const time = item.expenseDate.toMillis();
+        return time >= start && time < end;
+      }),
+    );
   }
 
   private toPayload(data: ExpenseWriteData, id: string, isCreate: boolean): Record<string, unknown> {

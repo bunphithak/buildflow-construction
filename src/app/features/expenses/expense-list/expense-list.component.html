@@ -37,11 +37,11 @@
   </label>
   <label>
     วันที่เริ่ม
-    <input type="date" [ngModel]="startDate()" (ngModelChange)="startDate.set($event); onRangeChange()" />
+    <input type="date" [ngModel]="startDate()" (ngModelChange)="onStartDateChange($event)" />
   </label>
   <label>
     วันที่สิ้นสุด
-    <input type="date" [ngModel]="endDate()" (ngModelChange)="endDate.set($event); onRangeChange()" />
+    <input type="date" [ngModel]="endDate()" (ngModelChange)="onEndDateChange($event)" />
   </label>
   <label>
     Job
