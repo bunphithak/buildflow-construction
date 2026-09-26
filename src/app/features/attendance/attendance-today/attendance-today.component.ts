@@ -11,21 +11,27 @@ import {
   clockTimesForStatus,
   Employee,
   Job,
+  isWorkedAttendanceStatus,
   needsAttendanceClock,
   otherJobAttendanceState,
+  workStoppageBanner,
+  workStoppageConfirmMessage,
 } from '../../../core/models';
 import { AttendanceSettingsService } from '../../../core/services/attendance-settings.service';
 import { AttendanceService, combineWorkTime } from '../../../core/services/attendance.service';
 import { EmployeeService } from '../../../core/services/employee.service';
 import { JobEmployeeService } from '../../../core/services/job-employee.service';
 import { JobService } from '../../../core/services/job.service';
+import { WorkStoppageService } from '../../../core/services/work-stoppage.service';
 import { formatBangkokTime } from '../../../core/utils/datetime.util';
 import { toDateInputValue } from '../../../core/utils/form.util';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { ThaiDatePipe } from '../../../shared/pipes/thai-date.pipe';
+import { ConfirmDialogService } from '../../../shared/services/confirm-dialog.service';
 import { ToastService } from '../../../shared/services/toast.service';
+import { WorkStoppageDialogService } from '../../../shared/services/work-stoppage-dialog.service';
 
 interface TodayRow {
   selected: boolean;
@@ -70,6 +76,9 @@ export class AttendanceTodayComponent {
   private readonly jobEmployeeService = inject(JobEmployeeService);
   private readonly employeeService = inject(EmployeeService);
   private readonly attendanceService = inject(AttendanceService);
+  private readonly workStoppageService = inject(WorkStoppageService);
+  private readonly stoppageDialog = inject(WorkStoppageDialogService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly settingsService = inject(AttendanceSettingsService);
   private readonly toast = inject(ToastService);
 
@@ -84,6 +93,8 @@ export class AttendanceTodayComponent {
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly loaded = signal(false);
+  readonly stoppageBanner = signal<string | null>(null);
+  readonly canStopAllJobs = computed(() => this.authService.hasRole(['ADMIN']));
   readonly canViewHistory = computed(() => this.authService.hasRole(['ADMIN']));
   readonly showNoAssignedJobs = computed(
     () =>
@@ -195,6 +206,81 @@ export class AttendanceTodayComponent {
     );
   }
 
+  async openStoppage(): Promise<void> {
+    const job = this.selectedJob();
+    if (!job && !this.canStopAllJobs()) {
+      this.toast.error('กรุณาเลือก Job');
+      return;
+    }
+    const result = await this.stoppageDialog.open({
+      jobLabel: job ? this.jobLabel(job) : 'ทุกไซต์งาน',
+      hasJob: !!job,
+      canStopAllJobs: this.canStopAllJobs(),
+      workedCount: this.rows().filter(
+        (row) => row.attendanceId && isWorkedAttendanceStatus(row.status),
+      ).length,
+    });
+    if (!result) {
+      return;
+    }
+    const jobs = result.scope === 'ALL' ? this.openJobs() : job ? [job] : [];
+    if (jobs.length === 0) {
+      this.toast.error('กรุณาเลือก Job');
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'ยืนยันสั่งหยุดงาน',
+      message: workStoppageConfirmMessage({
+        period: result.period,
+        scope: result.scope,
+        reason: result.reason,
+        reasonNote: result.reasonNote,
+        jobCount: jobs.length,
+        jobLabel: job ? this.jobLabel(job) : undefined,
+      }),
+      confirmLabel: 'สั่งหยุดเลย',
+      cancelLabel: 'ยกเลิก',
+    });
+    if (!confirmed) {
+      return;
+    }
+    try {
+      const applied = await this.workStoppageService.apply({
+        workDate: new Date(`${this.workDate}T00:00:00`),
+        jobs,
+        scope: result.scope,
+        period: result.period,
+        reason: result.reason,
+        reasonNote: result.reasonNote,
+        overwriteWorked: result.overwriteWorked,
+      });
+      this.toast.success(
+        `สั่งหยุด ${applied.jobCount} ไซต์ · บันทึก ${applied.saved} คน` +
+          (applied.skipped ? ` · ข้าม ${applied.skipped} คน` : ''),
+      );
+      if (this.jobId()) {
+        await this.loadEmployees();
+      }
+      await this.refreshBanner();
+    } catch (error) {
+      this.toast.error(error instanceof Error ? error.message : 'สั่งหยุดไม่สำเร็จ');
+    }
+  }
+
+  private async refreshBanner(): Promise<void> {
+    try {
+      const items = await this.workStoppageService.getByDate(new Date(`${this.workDate}T00:00:00`));
+      const jobId = this.jobId();
+      const match =
+        items.find((item) => item.scope === 'ALL') ??
+        items.find((item) => workStoppageBanner(item, jobId || undefined));
+      this.stoppageBanner.set(match ? workStoppageBanner(match, jobId || undefined) : null);
+    } catch {
+      this.stoppageBanner.set(null);
+    }
+  }
+
   async loadEmployees(): Promise<void> {
     const jobId = this.jobId();
     if (!jobId) {
@@ -244,6 +330,7 @@ export class AttendanceTodayComponent {
       }
       this.rows.set(rows.sort((a, b) => a.employeeCode.localeCompare(b.employeeCode)));
       this.loaded.set(true);
+      await this.refreshBanner();
       if (rows.length === 0) {
         this.toast.warning('ยังไม่มีพนักงานในงานนี้ กรุณาไปที่ Job แล้วมอบหมายพนักงานก่อน');
       }
@@ -348,6 +435,8 @@ export class AttendanceTodayComponent {
       await this.loadEmployees();
     } else if (this.openJobs().length === 1) {
       await this.onJobChange(this.openJobs()[0].id);
+    } else {
+      await this.refreshBanner();
     }
   }
 

@@ -51,6 +51,13 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /workStoppages/{id} {
+      allow read: if isAdmin() || isManager();
+      allow create: if isAdmin() || isManager();
+      allow update: if isAdmin() || isManager();
+      allow delete: if isAdmin();
+    }
+
     match /expenses/{id} {
       allow read: if isAdmin() || isManager();
       allow create: if isAdmin() || (

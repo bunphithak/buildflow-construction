@@ -6,6 +6,7 @@ import {
   DashboardSummary,
   Expense,
   isHalfDayStatus,
+  isSiteClosedStatus,
   Job,
   JobCostSummary,
   UserRole,
@@ -160,7 +161,7 @@ export class DashboardService {
         counts.halfDay += 1;
       } else if (dayRows.some((item) => item.status === 'LEAVE')) {
         counts.leave += 1;
-      } else if (dayRows.some((item) => item.status === 'HOLIDAY')) {
+      } else if (dayRows.some((item) => item.status === 'HOLIDAY' || isSiteClosedStatus(item.status))) {
         counts.holiday += 1;
       } else if (dayRows.some((item) => item.status === 'ABSENT')) {
         counts.absent += 1;

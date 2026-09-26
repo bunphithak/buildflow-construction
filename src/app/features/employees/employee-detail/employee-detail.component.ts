@@ -1,7 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Attendance, Employee, EmployeeAdvance, EMPLOYMENT_TYPE_LABELS, genderLabel, isWorkedAttendanceStatus, nationalityLabel, Payroll } from '../../../core/models';
+import { Attendance, Employee, EmployeeAdvance, EMPLOYMENT_TYPE_LABELS, displayAttendanceNote, genderLabel, isWorkedAttendanceStatus, nationalityLabel, Payroll } from '../../../core/models';
 import { AttendanceService, attendanceTimeLabel } from '../../../core/services/attendance.service';
 import { AdvanceService } from '../../../core/services/advance.service';
 import { PayrollService } from '../../../core/services/payroll.service';
@@ -173,5 +173,9 @@ export class EmployeeDetailComponent implements OnInit {
 
   period(item: Payroll): string {
     return payrollDisplayLabel(item);
+  }
+
+  attendanceNote(item: Attendance): string {
+    return displayAttendanceNote(item.note);
   }
 }

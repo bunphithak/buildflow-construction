@@ -1,4 +1,4 @@
-import { Attendance, Employee, isWorkedAttendanceStatus, Payroll, PayrollAdjustment, PayrollAttendanceSummary, PayrollTotals } from '../models';
+import { Attendance, Employee, isSiteClosedStatus, isWorkedAttendanceStatus, Payroll, PayrollAdjustment, PayrollAttendanceSummary, PayrollTotals } from '../models';
 import {
   bangkokDateKey,
   daysInBangkokMonth,
@@ -8,7 +8,7 @@ import {
   roundMoney,
 } from './datetime.util';
 
-export type PayrollDayKind = 'FULL' | 'HALF' | 'ABSENT' | 'LEAVE' | 'HOLIDAY' | 'NONE';
+export type PayrollDayKind = 'FULL' | 'HALF' | 'ABSENT' | 'LEAVE' | 'HOLIDAY' | 'SITE_CLOSED' | 'NONE';
 
 export interface PayrollRateSnapshot {
   employmentTypeSnapshot: 'DAILY' | 'MONTHLY';
@@ -47,6 +47,9 @@ export function classifyCalendarDay(records: Attendance[]): PayrollDayKind {
   }
   if (records.some((item) => item.status === 'HOLIDAY')) {
     return 'HOLIDAY';
+  }
+  if (records.some((item) => isSiteClosedStatus(item.status))) {
+    return 'SITE_CLOSED';
   }
   return 'NONE';
 }

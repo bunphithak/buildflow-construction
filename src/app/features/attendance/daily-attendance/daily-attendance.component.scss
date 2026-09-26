@@ -7,8 +7,17 @@
 }
 
 .toolbar {
-  grid-template-columns: 1fr 1.4fr auto;
+  grid-template-columns: 1fr 1.4fr auto auto;
   margin-bottom: 1rem;
+}
+
+.stoppage-banner {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.9rem;
+  background: var(--color-warning-soft);
+  color: #854d0e;
+  font-weight: 700;
 }
 
 .context {

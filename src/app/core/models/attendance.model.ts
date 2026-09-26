@@ -7,6 +7,9 @@ export type AttendanceStatus =
   | 'ABSENT'
   | 'LEAVE'
   | 'HOLIDAY'
+  | 'SITE_CLOSED'
+  | 'SITE_CLOSED_MORNING'
+  | 'SITE_CLOSED_AFTERNOON'
   | 'HALF_DAY'
   | 'HALF_DAY_MORNING'
   | 'HALF_DAY_AFTERNOON';
@@ -16,6 +19,9 @@ export const ATTENDANCE_STATUS_LABELS: Record<AttendanceStatus, string> = {
   ABSENT: 'ขาดงาน',
   LEAVE: 'ลางาน',
   HOLIDAY: 'วันหยุด',
+  SITE_CLOSED: 'สั่งหยุด',
+  SITE_CLOSED_MORNING: 'สั่งหยุดเช้า',
+  SITE_CLOSED_AFTERNOON: 'สั่งหยุดบ่าย',
   HALF_DAY: 'ครึ่งวัน',
   HALF_DAY_MORNING: 'ครึ่งวันเช้า',
   HALF_DAY_AFTERNOON: 'ครึ่งวันบ่าย',
@@ -29,6 +35,9 @@ export const ATTENDANCE_STATUSES: readonly AttendanceStatus[] = [
   'ABSENT',
   'LEAVE',
   'HOLIDAY',
+  'SITE_CLOSED',
+  'SITE_CLOSED_MORNING',
+  'SITE_CLOSED_AFTERNOON',
 ];
 
 export const ATTENDANCE_ENTRY_STATUSES: readonly AttendanceStatus[] = [
@@ -38,6 +47,9 @@ export const ATTENDANCE_ENTRY_STATUSES: readonly AttendanceStatus[] = [
   'ABSENT',
   'LEAVE',
   'HOLIDAY',
+  'SITE_CLOSED',
+  'SITE_CLOSED_MORNING',
+  'SITE_CLOSED_AFTERNOON',
 ];
 
 export function isHalfDayStatus(status: AttendanceStatus): boolean {
@@ -45,6 +57,14 @@ export function isHalfDayStatus(status: AttendanceStatus): boolean {
     status === 'HALF_DAY' ||
     status === 'HALF_DAY_MORNING' ||
     status === 'HALF_DAY_AFTERNOON'
+  );
+}
+
+export function isSiteClosedStatus(status: AttendanceStatus): boolean {
+  return (
+    status === 'SITE_CLOSED' ||
+    status === 'SITE_CLOSED_MORNING' ||
+    status === 'SITE_CLOSED_AFTERNOON'
   );
 }
 
@@ -80,6 +100,9 @@ export function clockTimesForStatus(
       breakMinutes: defaults.breakMinutes,
     };
   }
+  if (isSiteClosedStatus(status)) {
+    return { clockIn: '', clockOut: '', breakMinutes: 0 };
+  }
   return undefined;
 }
 
@@ -98,13 +121,16 @@ export function otherJobAttendanceState(others: { status: AttendanceStatus }[]):
         status === 'ABSENT' ||
         status === 'LEAVE' ||
         status === 'HOLIDAY' ||
+        status === 'SITE_CLOSED' ||
         status === 'HALF_DAY',
     )
   ) {
     return { locked: true };
   }
-  const hasMorning = statuses.includes('HALF_DAY_MORNING');
-  const hasAfternoon = statuses.includes('HALF_DAY_AFTERNOON');
+  const hasMorning =
+    statuses.includes('HALF_DAY_MORNING') || statuses.includes('SITE_CLOSED_MORNING');
+  const hasAfternoon =
+    statuses.includes('HALF_DAY_AFTERNOON') || statuses.includes('SITE_CLOSED_AFTERNOON');
   if (hasMorning && hasAfternoon) {
     return { locked: true };
   }

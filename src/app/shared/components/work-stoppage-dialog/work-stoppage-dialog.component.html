@@ -1,0 +1,75 @@
+@if (dialog.options(); as options) {
+  <div class="overlay" (click)="onOverlayClick($event)">
+    <section class="dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <h2>สั่งหยุดงาน</h2>
+      <p>ระบุช่วงเวลา ขอบเขต และสาเหตุก่อนบันทึกลงเวลา</p>
+
+      <label>
+        ช่วง
+        <select [ngModel]="period()" (ngModelChange)="setPeriod($event)">
+          <option value="FULL">{{ periodLabels.FULL }}</option>
+          <option value="MORNING">{{ periodLabels.MORNING }}</option>
+          <option value="AFTERNOON">{{ periodLabels.AFTERNOON }}</option>
+        </select>
+      </label>
+
+      @if (options.canStopAllJobs) {
+        <label>
+          ขอบเขต
+          <select [ngModel]="scope()" (ngModelChange)="setScope($event)">
+            @if (options.hasJob) {
+              <option value="JOB">เฉพาะ {{ options.jobLabel }}</option>
+            }
+            <option value="ALL">ทุกไซต์งานที่เปิดอยู่</option>
+          </select>
+        </label>
+      } @else {
+        <p class="hint">ไซต์งาน: {{ options.jobLabel }}</p>
+      }
+
+      <label>
+        สาเหตุ
+        <select [ngModel]="reason()" (ngModelChange)="setReason($event)">
+          @for (item of reasons; track item) {
+            <option [value]="item">{{ reasonLabels[item] }}</option>
+          }
+        </select>
+      </label>
+
+      @if (reason() === 'OTHER') {
+        <label>
+          รายละเอียดสาเหตุ
+          <input
+            type="text"
+            [ngModel]="reasonNote()"
+            (ngModelChange)="reasonNote.set($event)"
+            placeholder="เช่น น้ำท่วมทางเข้าไซต์"
+          />
+        </label>
+      }
+
+      @if (options.workedCount > 0) {
+        <label class="check">
+          <input
+            type="checkbox"
+            [ngModel]="overwriteWorked()"
+            (ngModelChange)="setOverwrite($event)"
+          />
+          ปรับคนที่ลงมาทำงานแล้ว {{ options.workedCount }} คน เป็นสั่งหยุดทั้งวัน
+        </label>
+        <p class="hint">
+          ถ้าไม่เลือก ระบบจะคงครึ่งวันที่ทำไปแล้ว หรือข้ามคนที่ลงเวลาทำงานไว้
+        </p>
+      }
+
+      @if (error()) {
+        <small>{{ error() }}</small>
+      }
+
+      <div class="actions">
+        <button type="button" class="btn btn-ghost" (click)="cancel()">ยกเลิก</button>
+        <button type="button" class="btn btn-primary" (click)="submit()">ถัดไป</button>
+      </div>
+    </section>
+  </div>
+}

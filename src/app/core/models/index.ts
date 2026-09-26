@@ -3,6 +3,7 @@ export * from './user.model';
 export * from './employee.model';
 export * from './job.model';
 export * from './attendance.model';
+export * from './work-stoppage.model';
 export * from './expense.model';
 export * from './payroll.model';
 export * from './cost.model';

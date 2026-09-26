@@ -7,6 +7,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { USER_ROLE_LABELS, UserRole } from '../../core/models';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { ToastHostComponent } from '../../shared/components/toast-host/toast-host.component';
+import { WorkStoppageDialogComponent } from '../../shared/components/work-stoppage-dialog/work-stoppage-dialog.component';
 
 interface NavItem {
   label: string;
@@ -25,6 +26,7 @@ interface NavItem {
     RouterLink,
     RouterLinkActive,
     ConfirmDialogComponent,
+    WorkStoppageDialogComponent,
     ToastHostComponent,
   ],
   templateUrl: './admin-layout.component.html',

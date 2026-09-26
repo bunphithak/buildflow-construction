@@ -5,11 +5,11 @@
 <section class="card toolbar">
   <label>
     วันที่ทำงาน
-    <input type="date" [ngModel]="workDate()" (ngModelChange)="workDate.set($event)" />
+    <input type="date" [ngModel]="workDate()" (ngModelChange)="onWorkDateChange($event)" />
   </label>
   <label>
     Job
-    <select [ngModel]="jobId()" (ngModelChange)="jobId.set($event)">
+    <select [ngModel]="jobId()" (ngModelChange)="onJobIdChange($event)">
       <option value="">เลือก Job</option>
       @for (job of openJobs(); track job.id) {
         <option [value]="job.id">{{ jobLabel(job) }}</option>
@@ -17,7 +17,12 @@
     </select>
   </label>
   <button type="button" class="btn btn-primary" (click)="loadEmployees()">โหลดพนักงาน</button>
+  <button type="button" class="btn btn-ghost" (click)="openStoppage()">สั่งหยุด</button>
 </section>
+
+@if (stoppageBanner(); as banner) {
+  <p class="stoppage-banner">{{ banner }}</p>
+}
 
 @if (loaded() && selectedJob(); as job) {
   <p class="context">วันที่ {{ workDate() | thaiDate:'short' }} · {{ job.jobCode }} {{ job.jobName }}</p>
@@ -36,6 +41,7 @@
       <button type="button" class="btn btn-ghost" (click)="applyStatus('ABSENT')">ขาดงาน</button>
       <button type="button" class="btn btn-ghost" (click)="applyStatus('LEAVE')">ลางาน</button>
       <button type="button" class="btn btn-ghost" (click)="applyStatus('HOLIDAY')">วันหยุด</button>
+      <button type="button" class="btn btn-ghost" (click)="openStoppage()">สั่งหยุด</button>
     </div>
     <div class="defaults">
       <label>เวลาเข้า <input type="time" [ngModel]="defaultClockIn()" (ngModelChange)="defaultClockIn.set($event)" /></label>

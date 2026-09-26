@@ -4,6 +4,7 @@ export const COLLECTIONS = {
   jobs: 'jobs',
   jobEmployees: 'jobEmployees',
   attendances: 'attendances',
+  workStoppages: 'workStoppages',
   expenses: 'expenses',
   expenseCategories: 'expenseCategories',
   payrolls: 'payrolls',

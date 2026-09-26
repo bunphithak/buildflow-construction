@@ -99,6 +99,9 @@
                   <th>ออก</th>
                   <th>OT</th>
                   <th>ค่าแรง</th>
+                  @if (activeTab() === 'attendance') {
+                    <th>หมายเหตุ</th>
+                  }
                 </tr>
               </thead>
               <tbody>
@@ -111,6 +114,9 @@
                     <td>{{ times(item).clockOut }}</td>
                     <td>{{ item.overtimeHours }}</td>
                     <td>{{ money(item.totalLaborCost) }}</td>
+                    @if (activeTab() === 'attendance') {
+                      <td class="note">{{ attendanceNote(item) }}</td>
+                    }
                   </tr>
                 }
               </tbody>

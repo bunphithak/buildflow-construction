@@ -18,7 +18,12 @@
       }
     </select>
   </label>
+  <button type="button" class="btn btn-ghost" (click)="openStoppage()">สั่งหยุด</button>
 </section>
+
+@if (stoppageBanner(); as banner) {
+  <p class="stoppage-banner">{{ banner }}</p>
+}
 
 @if (showNoAssignedJobs()) {
   <app-empty-state
@@ -44,6 +49,7 @@
       <button type="button" class="btn btn-ghost" (click)="applyStatus('ABSENT')">ขาดงาน</button>
       <button type="button" class="btn btn-ghost" (click)="applyStatus('LEAVE')">ลางาน</button>
       <button type="button" class="btn btn-ghost" (click)="applyStatus('HOLIDAY')">วันหยุด</button>
+      <button type="button" class="btn btn-ghost" (click)="openStoppage()">สั่งหยุด</button>
     </div>
     <div class="defaults">
       <label>เวลาเข้า <input type="time" [ngModel]="defaultClockIn()" (ngModelChange)="defaultClockIn.set($event)" /></label>

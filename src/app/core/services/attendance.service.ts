@@ -13,6 +13,7 @@ import {
   updateDoc,
   where,
   writeBatch,
+  deleteField,
 } from '@angular/fire/firestore';
 import { DocumentData } from 'firebase/firestore';
 import { COLLECTIONS } from '../constants/collections';
@@ -343,8 +344,6 @@ export class AttendanceService {
       employeeId: data.employeeId,
       jobId: data.jobId,
       workDate: Timestamp.fromDate(startOfDayBangkok(data.workDate)),
-      clockIn: clockIn ? Timestamp.fromDate(clockIn) : undefined,
-      clockOut: clockOut ? Timestamp.fromDate(clockOut) : undefined,
       breakMinutes: Number(data.breakMinutes ?? 0),
       normalHours: calculated.normalHours,
       overtimeHours: Number(data.overtimeHours ?? 0),
@@ -360,6 +359,16 @@ export class AttendanceService {
       updatedAt: serverTimestamp(),
       updatedBy: actor,
     });
+    if (clockIn) {
+      payload['clockIn'] = Timestamp.fromDate(clockIn);
+    } else if (!isCreate) {
+      payload['clockIn'] = deleteField();
+    }
+    if (clockOut) {
+      payload['clockOut'] = Timestamp.fromDate(clockOut);
+    } else if (!isCreate) {
+      payload['clockOut'] = deleteField();
+    }
     if (isCreate) {
       payload['createdAt'] = serverTimestamp();
       payload['createdBy'] = actor;
@@ -441,6 +450,9 @@ export class AttendanceService {
       'ABSENT',
       'LEAVE',
       'HOLIDAY',
+      'SITE_CLOSED',
+      'SITE_CLOSED_MORNING',
+      'SITE_CLOSED_AFTERNOON',
       'HALF_DAY',
       'HALF_DAY_MORNING',
       'HALF_DAY_AFTERNOON',

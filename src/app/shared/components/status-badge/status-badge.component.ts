@@ -64,6 +64,9 @@ export class StatusBadgeComponent {
           return 'info';
         case 'LEAVE':
         case 'HOLIDAY':
+        case 'SITE_CLOSED':
+        case 'SITE_CLOSED_MORNING':
+        case 'SITE_CLOSED_AFTERNOON':
           return 'warning';
         case 'ABSENT':
           return 'danger';

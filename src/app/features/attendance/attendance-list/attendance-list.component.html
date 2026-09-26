@@ -44,6 +44,7 @@
   <article class="card"><span>ขาด</span><strong>{{ summary().absent }}</strong></article>
   <article class="card"><span>ลา</span><strong>{{ summary().leave }}</strong></article>
   <article class="card"><span>ครึ่งวัน</span><strong>{{ summary().halfDay }}</strong></article>
+  <article class="card"><span>สั่งหยุด</span><strong>{{ summary().siteClosed }}</strong></article>
   <article class="card"><span>OT รวม</span><strong>{{ summary().overtime }}</strong></article>
   @if (canManage()) {
     <article class="card"><span>ค่าแรงรวม</span><strong>{{ money(summary().labor) }}</strong></article>

@@ -59,6 +59,9 @@ export class AttendanceCalculationService {
         return roundMoney(presentCost * 0.5);
       case 'HOLIDAY':
         return settings.paidHolidayEnabled ? presentCost : 0;
+      case 'SITE_CLOSED':
+      case 'SITE_CLOSED_MORNING':
+      case 'SITE_CLOSED_AFTERNOON':
       case 'ABSENT':
       case 'LEAVE':
       default:
