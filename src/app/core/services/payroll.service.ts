@@ -157,23 +157,20 @@ export class PayrollService {
     const previews = [];
     for (const employee of employees) {
       const existing = payrollByEmployee.get(employee.id);
-      const attendances = attendancesByEmployee.get(employee.id) ?? [];
-      if (jobId) {
-        const jobSummary = this.calculation.summarizeForEmployee(
-          employee,
-          attendances.filter((item) => item.jobId === jobId),
-          { start, end },
-        );
-        if (!hasPayableWork(jobSummary)) {
-          continue;
-        }
-      }
+      const attendances = this.attendancesForJob(
+        attendancesByEmployee.get(employee.id) ?? [],
+        jobId,
+      );
       const summary = this.calculation.summarizeForEmployee(
         employee,
         attendances,
         { start, end },
       );
-      if (!hasPayableWork(summary) && !existing) {
+      if (jobId) {
+        if (!hasPayableWork(summary)) {
+          continue;
+        }
+      } else if (!hasPayableWork(summary) && !existing) {
         continue;
       }
       const totals = calculatePayrollTotals(
@@ -217,13 +214,14 @@ export class PayrollService {
     year: number,
     month: number,
     employeeIds?: string[],
-    range?: { start: Date; end: Date; payDate?: Date },
+    range?: { start: Date; end: Date; payDate?: Date; jobId?: string },
   ): Promise<{
     created: string[];
     existing: Payroll[];
   }> {
     const { start, end } = range ?? monthRangeBangkok(year, month);
     const periodKey = payrollPeriodKey(start, end);
+    const jobId = range?.jobId;
     const { employees, attendancesByEmployee, payrollByEmployee, pendingByEmployee } =
       await this.loadPeriodContext(start, end, employeeIds);
     const existing: Payroll[] = [];
@@ -234,7 +232,7 @@ export class PayrollService {
         existing.push(found);
         continue;
       }
-      const rows = attendancesByEmployee.get(employee.id) ?? [];
+      const rows = this.attendancesForJob(attendancesByEmployee.get(employee.id) ?? [], jobId);
       const summary = this.calculation.summarize(
         rows,
         snapshotEmployeeRates(employee),
@@ -665,6 +663,10 @@ export class PayrollService {
 
   private advancesCollection() {
     return collection(this.firestore, COLLECTIONS.employeeAdvances);
+  }
+
+  private attendancesForJob(rows: Attendance[], jobId?: string): Attendance[] {
+    return jobId ? rows.filter((item) => item.jobId === jobId) : rows;
   }
 
   private sumAdvances(rows: EmployeeAdvance[]): number {

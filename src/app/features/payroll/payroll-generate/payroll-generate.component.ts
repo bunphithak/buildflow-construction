@@ -174,7 +174,8 @@ export class PayrollGenerateComponent implements OnInit {
     this.saving.set(true);
     try {
       const { start, end } = this.range();
-      const employeeIds = this.jobId() ? this.rows().map((row) => row.employee.id) : undefined;
+      const jobId = this.jobId() || undefined;
+      const employeeIds = jobId ? this.rows().map((row) => row.employee.id) : undefined;
       const result = await this.payrollService.generateForPeriod(
         this.year(),
         this.month(),
@@ -183,6 +184,7 @@ export class PayrollGenerateComponent implements OnInit {
           start,
           end,
           payDate: new Date(`${this.payDate()}T00:00:00`),
+          jobId,
         },
       );
       if (result.created.length === 0 && result.existing.length > 0) {

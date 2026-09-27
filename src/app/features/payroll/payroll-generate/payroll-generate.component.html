@@ -33,9 +33,9 @@
   <label>
     Job
     <select [ngModel]="jobId()" (ngModelChange)="setJob($event)">
-      <option value="">ทั้งหมด</option>
+      <option [ngValue]="''">ทั้งหมด</option>
       @for (job of jobOptions(); track job.id) {
-        <option [value]="job.id">{{ job.jobCode }} · {{ job.jobName }}</option>
+        <option [ngValue]="job.id">{{ job.jobCode }} · {{ job.jobName }}</option>
       }
     </select>
   </label>
@@ -58,6 +58,9 @@
 <p class="hint">
   นับ Attendance ตามช่วงตัดยอด ไม่ใช่ทั้งเดือนปฏิทิน เช่น ตัด 15 จ่าย 20 และตัดสิ้นเดือนจ่ายวันที่ 5
   · พนักงานรายเดือนจะถูกเฉลี่ยเงินเดือนตามจำนวนวันในช่วงที่เลือก
+  @if (jobId()) {
+    · เลือก Job แล้วจะนับเฉพาะวันทำงานของ Job นั้น ทั้งตัวอย่างและตอนสร้าง Payroll
+  }
 </p>
 
 @if (loading()) {
