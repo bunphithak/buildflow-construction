@@ -97,13 +97,13 @@
             <th>รหัส</th>
             <th>พนักงาน</th>
             <th>ประเภท</th>
-            <th>วันทำงาน</th>
-            <th>ครึ่งวัน</th>
+            <th class="center">วันทำงาน</th>
+            <th class="center">ครึ่งวัน</th>
             <th>OT</th>
-            <th>ค่าแรง</th>
+            <th class="num">ค่าแรง</th>
             <th>OT</th>
-            <th>เงินเบิก</th>
-            <th>สุทธิ</th>
+            <th class="num">เงินเบิก</th>
+            <th class="num">สุทธิ(บาท)</th>
             <th></th>
           </tr>
         </thead>
@@ -113,13 +113,13 @@
               <td>{{ row.employee.employeeCode }}</td>
               <td>{{ row.employee.firstName }} {{ row.employee.lastName }}</td>
               <td>{{ typeLabels[row.employee.employmentType] }}</td>
-              <td>{{ row.workDays }}</td>
-              <td>{{ row.halfDays }}</td>
+              <td class="center">{{ row.workDays }}</td>
+              <td class="center">{{ row.halfDays }}</td>
               <td>{{ row.overtimeHours }}</td>
-              <td>{{ amount(row.basePay) }}</td>
+              <td class="num">{{ amount(row.basePay) }}</td>
               <td>{{ amount(row.overtimePay) }}</td>
-              <td>{{ amount(row.advance) }}</td>
-              <td>{{ money(row.netPay) }}</td>
+              <td class="num" [class.advance]="row.advance > 0">{{ amount(row.advance) }}</td>
+              <td class="num net">{{ amount(row.netPay) }}</td>
               <td>
                 @if (row.existing) {
                   <a class="icon-btn" [routerLink]="['/payroll', row.existing.id]" title="มี Payroll ในช่วงนี้แล้ว" aria-label="มี Payroll ในช่วงนี้แล้ว">
