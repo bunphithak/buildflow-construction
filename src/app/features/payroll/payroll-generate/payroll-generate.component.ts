@@ -1,10 +1,11 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { filter, firstValueFrom, take } from 'rxjs';
+import { combineLatest, filter, firstValueFrom, take } from 'rxjs';
 import { Employee, EMPLOYMENT_TYPE_LABELS, Payroll } from '../../../core/models';
 import { EmployeeService } from '../../../core/services/employee.service';
+import { JobService } from '../../../core/services/job.service';
 import { PayrollService, mapPayrollError } from '../../../core/services/payroll.service';
 import { formatBaht, formatAmount, toDateInputValue } from '../../../core/utils/form.util';
 import {
@@ -12,6 +13,7 @@ import {
   formatPayrollRangeLabel,
   PayrollCutPreset,
   payrollCutRange,
+  roundMoney,
 } from '../../../core/utils/datetime.util';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
@@ -39,6 +41,7 @@ interface PreviewRow {
 })
 export class PayrollGenerateComponent implements OnInit {
   private readonly employeeService = inject(EmployeeService);
+  private readonly jobService = inject(JobService);
   private readonly payrollService = inject(PayrollService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
@@ -52,16 +55,39 @@ export class PayrollGenerateComponent implements OnInit {
   readonly customStart = signal(toDateInputValue(new Date(new Date().getFullYear(), new Date().getMonth(), 1)));
   readonly customEnd = signal(toDateInputValue(new Date()));
   readonly payDate = signal(toDateInputValue(this.currentPayDate()));
+  readonly jobId = signal('');
   readonly typeLabels = EMPLOYMENT_TYPE_LABELS;
   readonly years = Array.from({ length: 6 }, (_, index) => new Date().getFullYear() - 2 + index);
   readonly months = Array.from({ length: 12 }, (_, index) => index + 1);
 
+  readonly totals = computed(() => {
+    const rows = this.rows();
+    const income = roundMoney(rows.reduce((sum, row) => sum + row.basePay + row.overtimePay, 0));
+    const deduction = roundMoney(rows.reduce((sum, row) => sum + row.advance, 0));
+    return {
+      count: rows.length,
+      income,
+      deduction,
+      net: roundMoney(rows.reduce((sum, row) => sum + row.netPay, 0)),
+    };
+  });
+
+  readonly jobOptions = computed(() =>
+    [...this.jobService.jobs()].sort((a, b) => a.jobCode.localeCompare(b.jobCode, 'th', { numeric: true })),
+  );
+
   private readonly employeesLoaded$ = toObservable(this.employeeService.loaded);
+  private readonly jobsLoaded$ = toObservable(this.jobService.loaded);
   private previewRequest = 0;
 
   async ngOnInit(): Promise<void> {
     this.syncPayDate();
-    await firstValueFrom(this.employeesLoaded$.pipe(filter(Boolean), take(1)));
+    await firstValueFrom(
+      combineLatest([this.employeesLoaded$, this.jobsLoaded$]).pipe(
+        filter(([employeesLoaded, jobsLoaded]) => employeesLoaded && jobsLoaded),
+        take(1),
+      ),
+    );
     await this.preview();
   }
 
@@ -89,6 +115,11 @@ export class PayrollGenerateComponent implements OnInit {
   setPreset(value: string): void {
     this.preset.set(value as PayrollCutPreset);
     this.syncPayDate();
+    void this.preview();
+  }
+
+  setJob(value: string): void {
+    this.jobId.set(value);
     void this.preview();
   }
 
@@ -124,7 +155,7 @@ export class PayrollGenerateComponent implements OnInit {
         }
         return;
       }
-      const previews = await this.payrollService.previewForPeriod(start, end);
+      const previews = await this.payrollService.previewForPeriod(start, end, this.jobId() || undefined);
       if (request !== this.previewRequest) {
         return;
       }
@@ -143,11 +174,17 @@ export class PayrollGenerateComponent implements OnInit {
     this.saving.set(true);
     try {
       const { start, end } = this.range();
-      const result = await this.payrollService.generateForPeriod(this.year(), this.month(), undefined, {
-        start,
-        end,
-        payDate: new Date(`${this.payDate()}T00:00:00`),
-      });
+      const employeeIds = this.jobId() ? this.rows().map((row) => row.employee.id) : undefined;
+      const result = await this.payrollService.generateForPeriod(
+        this.year(),
+        this.month(),
+        employeeIds,
+        {
+          start,
+          end,
+          payDate: new Date(`${this.payDate()}T00:00:00`),
+        },
+      );
       if (result.created.length === 0 && result.existing.length > 0) {
         this.toast.warning('มี Payroll ของพนักงานในช่วงตัดยอดนี้แล้ว');
       } else if (result.created.length === 0) {

@@ -12,11 +12,13 @@ import {
   JobStatus,
   PAYROLL_STATUS_LABELS,
   PayrollStatus,
+  REVENUE_STATUS_LABELS,
+  RevenueStatus,
 } from '../../../core/models';
 import { jobStatusVariant, StatusTone } from '../../../core/utils/job-status.util';
 
 export type BadgeVariant = StatusTone;
-export type StatusBadgeKind = 'employee' | 'job' | 'assignment' | 'attendance' | 'payroll' | 'advance';
+export type StatusBadgeKind = 'employee' | 'job' | 'assignment' | 'attendance' | 'payroll' | 'advance' | 'revenue';
 
 @Component({
   selector: 'app-status-badge',
@@ -25,7 +27,7 @@ export type StatusBadgeKind = 'employee' | 'job' | 'assignment' | 'attendance' |
   styleUrl: './status-badge.component.scss',
 })
 export class StatusBadgeComponent {
-  @Input() status?: EmployeeStatus | JobStatus | JobAssignmentStatus | AttendanceStatus | PayrollStatus | AdvanceStatus;
+  @Input() status?: EmployeeStatus | JobStatus | JobAssignmentStatus | AttendanceStatus | PayrollStatus | AdvanceStatus | RevenueStatus;
   @Input() kind: StatusBadgeKind = 'employee';
 
   get label(): string {
@@ -46,6 +48,9 @@ export class StatusBadgeComponent {
     }
     if (this.kind === 'advance') {
       return ADVANCE_STATUS_LABELS[this.status as AdvanceStatus];
+    }
+    if (this.kind === 'revenue') {
+      return REVENUE_STATUS_LABELS[this.status as RevenueStatus];
     }
     return EMPLOYEE_STATUS_LABELS[this.status as EmployeeStatus];
   }
@@ -91,6 +96,18 @@ export class StatusBadgeComponent {
       switch (this.status) {
         case 'DEDUCTED':
           return 'success';
+        case 'CANCELLED':
+          return 'danger';
+        default:
+          return 'warning';
+      }
+    }
+    if (this.kind === 'revenue') {
+      switch (this.status) {
+        case 'RECEIVED':
+          return 'success';
+        case 'BILLED':
+          return 'info';
         case 'CANCELLED':
           return 'danger';
         default:

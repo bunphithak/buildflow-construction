@@ -14,7 +14,7 @@
 } @else {
   @if (report(); as data) {
   <section class="stats">
-    <article class="card"><span>รายได้รวม</span><strong>{{ money(data.totalRevenue) }}</strong></article>
+    <article class="card"><span>เงินเข้าจริงในช่วงนี้</span><strong>{{ money(data.totalRevenue) }}</strong></article>
     <article class="card"><span>ต้นทุนรวม</span><strong>{{ money(data.totalCost) }}</strong></article>
     <article class="card"><span>กำไรรวม</span><strong>{{ money(data.totalProfit) }}</strong></article>
     <article class="card"><span>Margin รวม</span><strong>{{ data.margin | number:'1.2-2' }}%</strong></article>

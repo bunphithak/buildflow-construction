@@ -1,5 +1,7 @@
 <app-page-header title="สร้างงวด Payroll" [subtitle]="periodLabel()">
-  <a routerLink="/payroll" class="btn btn-ghost">กลับ</a>
+  <div class="header-actions">
+    <a routerLink="/payroll" class="btn btn-ghost">กลับ</a>
+  </div>
 </app-page-header>
 
 <section class="card filters">
@@ -29,6 +31,15 @@
     </select>
   </label>
   <label>
+    Job
+    <select [ngModel]="jobId()" (ngModelChange)="setJob($event)">
+      <option value="">ทั้งหมด</option>
+      @for (job of jobOptions(); track job.id) {
+        <option [value]="job.id">{{ job.jobCode }} · {{ job.jobName }}</option>
+      }
+    </select>
+  </label>
+  <label>
     วันจ่าย
     <input type="date" [ngModel]="payDate()" (ngModelChange)="payDate.set($event)" />
   </label>
@@ -52,8 +63,29 @@
 @if (loading()) {
   <app-loading-state />
 } @else if (rows().length === 0) {
-  <app-empty-state title="ไม่มีพนักงานในช่วงตัดยอดนี้" message="ไม่มีคนที่มาทำงานหรือครึ่งวันในช่วงวันที่ที่เลือก จึงยังไม่ต้องสร้าง Payroll" />
+  <app-empty-state
+    title="ไม่มีพนักงานในช่วงตัดยอดนี้"
+    [message]="jobId() ? 'ไม่มีคนลงเวลาใน Job ที่เลือกในช่วงวันที่นี้' : 'ไม่มีคนที่มาทำงานหรือครึ่งวันในช่วงวันที่ที่เลือก จึงยังไม่ต้องสร้าง Payroll'"
+  />
 } @else {
+  <section class="stats">
+    <article class="card">
+      <span>พนักงาน</span>
+      <strong>{{ totals().count }} คน</strong>
+    </article>
+    <article class="card">
+      <span>รวมจ่าย</span>
+      <strong>{{ money(totals().income) }}</strong>
+    </article>
+    <article class="card">
+      <span>หัก</span>
+      <strong>{{ money(totals().deduction) }}</strong>
+    </article>
+    <article class="card">
+      <span>จ่ายรวมสุทธิ</span>
+      <strong>{{ money(totals().net) }}</strong>
+    </article>
+  </section>
   <section class="card table-card">
     <div class="table-wrap">
       <table>

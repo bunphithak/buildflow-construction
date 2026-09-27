@@ -13,6 +13,9 @@ export interface JobCostInput {
   fuelCost?: number;
   otherExpense?: number;
   breakdown?: ExpenseBreakdownItem[];
+  variationAmount?: number;
+  billedAmount?: number;
+  receivedAmount?: number;
 }
 
 export function calculateJobCostSummary(input: JobCostInput): JobCostSummary {
@@ -27,9 +30,15 @@ export function calculateJobCostSummary(input: JobCostInput): JobCostSummary {
   const totalCost = roundMoney(laborCost + expenseCost);
   const contractValue = roundMoney(input.contractValue);
   const estimatedBudget = roundMoney(input.estimatedBudget);
-  const estimatedProfit = roundMoney(contractValue - totalCost);
+  const variationAmount = roundMoney(input.variationAmount);
+  const totalRevenue = roundMoney(contractValue + variationAmount);
+  const billedAmount = roundMoney(input.billedAmount);
+  const receivedAmount = roundMoney(input.receivedAmount);
+  const outstandingAmount = roundMoney(totalRevenue - receivedAmount);
+  const estimatedProfit = roundMoney(totalRevenue - totalCost);
+  const cashProfit = roundMoney(receivedAmount - totalCost);
   const remainingBudget = roundMoney(estimatedBudget - totalCost);
-  const profitMargin = contractValue > 0 ? (estimatedProfit / contractValue) * 100 : 0;
+  const profitMargin = totalRevenue > 0 ? (estimatedProfit / totalRevenue) * 100 : 0;
   const budgetUsedPercent = estimatedBudget > 0 ? (totalCost / estimatedBudget) * 100 : 0;
 
   return {
@@ -51,6 +60,12 @@ export function calculateJobCostSummary(input: JobCostInput): JobCostSummary {
     budgetUsedPercent,
     remainingBudget,
     breakdown: input.breakdown ?? [],
+    variationAmount,
+    totalRevenue,
+    billedAmount,
+    receivedAmount,
+    outstandingAmount,
+    cashProfit,
   };
 }
 

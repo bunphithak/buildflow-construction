@@ -6,7 +6,7 @@
   @if (payroll(); as item) {
     @if (employee(); as employee) {
       <div class="no-print actions">
-        <a class="btn btn-ghost" [routerLink]="['/payroll', item.id]">กลับ</a>
+        <a class="btn btn-ghost" [routerLink]="backLink()">กลับ</a>
         <button type="button" class="btn btn-primary" (click)="print()">พิมพ์</button>
       </div>
 

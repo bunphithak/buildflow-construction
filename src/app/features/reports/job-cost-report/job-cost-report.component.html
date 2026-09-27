@@ -30,10 +30,13 @@
         <tr>
           <th>Job</th>
           <th>Contract Value</th>
+          <th>งานเพิ่ม</th>
+          <th>รับแล้ว</th>
+          <th>เหลือรับ</th>
           <th>Labor</th>
           <th>Expense</th>
           <th>Total Cost</th>
-          <th>กำไร</th>
+          <th>กำไรตามงาน</th>
           <th>Margin</th>
           <th>Budget Used</th>
           <th>Remaining</th>
@@ -44,6 +47,9 @@
           <tr>
             <td>{{ row.jobName }}</td>
             <td>{{ money(row.contractValue) }}</td>
+            <td>{{ money(row.variationAmount) }}</td>
+            <td>{{ money(row.receivedAmount) }}</td>
+            <td>{{ money(row.outstandingAmount) }}</td>
             <td>{{ money(row.laborCost) }}</td>
             <td>{{ money(row.expenseCost) }}</td>
             <td>{{ money(row.totalCost) }}</td>

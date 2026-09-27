@@ -139,7 +139,7 @@ export class PayrollService {
     return snapshot.docs.map((item) => this.mapPayroll({ id: item.id, ...item.data() }));
   }
 
-  async previewForPeriod(start: Date, end: Date): Promise<
+  async previewForPeriod(start: Date, end: Date, jobId?: string): Promise<
     Array<{
       employee: Employee;
       existing?: Payroll;
@@ -157,9 +157,20 @@ export class PayrollService {
     const previews = [];
     for (const employee of employees) {
       const existing = payrollByEmployee.get(employee.id);
+      const attendances = attendancesByEmployee.get(employee.id) ?? [];
+      if (jobId) {
+        const jobSummary = this.calculation.summarizeForEmployee(
+          employee,
+          attendances.filter((item) => item.jobId === jobId),
+          { start, end },
+        );
+        if (!hasPayableWork(jobSummary)) {
+          continue;
+        }
+      }
       const summary = this.calculation.summarizeForEmployee(
         employee,
-        attendancesByEmployee.get(employee.id) ?? [],
+        attendances,
         { start, end },
       );
       if (!hasPayableWork(summary) && !existing) {

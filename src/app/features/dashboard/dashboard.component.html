@@ -65,7 +65,7 @@
       <article class="card">
         <h2>Top 5 Job กำไรสูงสุด</h2>
         @if (data.topProfitJobs.length === 0) {
-          <app-empty-state title="ยังไม่มีข้อมูล" message="เมื่อมี Attendance และค่าใช้จ่าย จะแสดงกำไรโดยประมาณ" />
+          <app-empty-state title="ยังไม่มีข้อมูล" message="เมื่อมีรายรับและต้นทุน จะแสดงกำไรตามงาน" />
         } @else {
           @for (job of data.topProfitJobs; track job.jobId) {
             <a class="row" [routerLink]="['/jobs', job.jobId]">
@@ -108,7 +108,7 @@
       <article class="card"><h2>ค่าแรงรายเดือน</h2><app-simple-chart type="bar" seriesLabel="ค่าแรง" [labels]="data.monthlyLabor.labels" [values]="data.monthlyLabor.values" /></article>
       <article class="card"><h2>ค่าใช้จ่ายรายเดือน</h2><app-simple-chart type="bar" seriesLabel="ค่าใช้จ่าย" [labels]="data.monthlyExpense.labels" [values]="data.monthlyExpense.values" /></article>
       <article class="card"><h2>ต้นทุนรวมรายเดือน</h2><app-simple-chart type="line" seriesLabel="ต้นทุน" [labels]="data.monthlyTotalCost.labels" [values]="data.monthlyTotalCost.values" /></article>
-      <article class="card"><h2>กำไรประมาณการรายเดือน</h2><app-simple-chart type="line" seriesLabel="กำไร" [labels]="data.monthlyProfit.labels" [values]="data.monthlyProfit.values" /></article>
+      <article class="card"><h2>เงินเข้าหักต้นทุนรายเดือน</h2><app-simple-chart type="line" seriesLabel="เงินเข้า−ต้นทุน" [labels]="data.monthlyProfit.labels" [values]="data.monthlyProfit.values" /></article>
       <article class="card"><h2>ค่าใช้จ่ายแยกตามหมวด</h2><app-simple-chart type="doughnut" seriesLabel="หมวด" [labels]="data.expenseByCategory.labels" [values]="data.expenseByCategory.values" /></article>
       <article class="card"><h2>ค่าแรงแยกตาม Job</h2><app-simple-chart type="bar" seriesLabel="ค่าแรง" [labels]="data.laborByJob.labels" [values]="data.laborByJob.values" /></article>
     </section>

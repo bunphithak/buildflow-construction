@@ -1,11 +1,13 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Employee, EMPLOYMENT_TYPE_LABELS, Payroll } from '../../../core/models';
+import { Attendance, Employee, EMPLOYMENT_TYPE_LABELS, isWorkedAttendanceStatus, Payroll } from '../../../core/models';
+import { AttendanceService } from '../../../core/services/attendance.service';
 import { EmployeeService } from '../../../core/services/employee.service';
+import { JobService } from '../../../core/services/job.service';
 import { PayrollService, mapPayrollError } from '../../../core/services/payroll.service';
 import { formatBaht, formatAmount } from '../../../core/utils/form.util';
-import { formatPayrollPeriod } from '../../../core/utils/datetime.util';
+import { formatPayrollPeriod, monthRangeBangkok } from '../../../core/utils/datetime.util';
 import { payrollDisplayLabel } from '../../../core/utils/payroll.util';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
@@ -31,21 +33,38 @@ import { ToastService } from '../../../shared/services/toast.service';
 export class PayrollListComponent implements OnInit {
   private readonly payrollService = inject(PayrollService);
   private readonly employeeService = inject(EmployeeService);
+  private readonly jobService = inject(JobService);
+  private readonly attendanceService = inject(AttendanceService);
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
 
   readonly loading = signal(true);
   readonly payrolls = signal<Payroll[]>([]);
+  readonly attendances = signal<Attendance[]>([]);
   readonly year = signal(new Date().getFullYear());
   readonly month = signal(new Date().getMonth() + 1);
+  readonly jobId = signal('');
   readonly selected = signal<Set<string>>(new Set());
   readonly typeLabels = EMPLOYMENT_TYPE_LABELS;
   readonly years = Array.from({ length: 6 }, (_, index) => new Date().getFullYear() - 2 + index);
   readonly months = Array.from({ length: 12 }, (_, index) => index + 1);
 
+  readonly jobOptions = computed(() =>
+    [...this.jobService.jobs()].sort((a, b) => a.jobCode.localeCompare(b.jobCode, 'th', { numeric: true })),
+  );
+
+  readonly visiblePayrolls = computed(() => {
+    const jobId = this.jobId();
+    const rows = this.payrolls();
+    if (!jobId) {
+      return rows;
+    }
+    return rows.filter((payroll) => this.workedJobInPayroll(payroll, jobId));
+  });
+
   readonly periodLabel = computed(() => formatPayrollPeriod(this.year(), this.month()));
   readonly summary = computed(() => {
-    const rows = this.payrolls().filter((item) => item.status !== 'CANCELLED');
+    const rows = this.visiblePayrolls().filter((item) => item.status !== 'CANCELLED');
     return {
       count: rows.length,
       base: rows.reduce((sum, item) => sum + item.basePay, 0),
@@ -64,8 +83,13 @@ export class PayrollListComponent implements OnInit {
     this.loading.set(true);
     this.selected.set(new Set());
     try {
-      const rows = await this.payrollService.getPayrollsByPeriod(this.year(), this.month());
+      const { start, end } = monthRangeBangkok(this.year(), this.month());
+      const [rows, attendances] = await Promise.all([
+        this.payrollService.getPayrollsByPeriod(this.year(), this.month()),
+        this.attendanceService.getAttendancesByDateRange(start, end),
+      ]);
       this.payrolls.set(rows);
+      this.attendances.set(attendances);
     } catch (error) {
       console.error(error);
       this.toast.error('ไม่สามารถโหลด Payroll ได้');
@@ -99,6 +123,24 @@ export class PayrollListComponent implements OnInit {
     return payrollDisplayLabel(item);
   }
 
+  setJob(value: string): void {
+    this.jobId.set(value);
+    this.selected.set(new Set());
+  }
+
+  private workedJobInPayroll(payroll: Payroll, jobId: string): boolean {
+    const { start, end } = this.payrollService.payrollDateRange(payroll);
+    const startMs = start.getTime();
+    const endMs = end.getTime();
+    return this.attendances().some((item) => {
+      if (item.employeeId !== payroll.employeeId || item.jobId !== jobId || !isWorkedAttendanceStatus(item.status)) {
+        return false;
+      }
+      const time = item.workDate.toDate().getTime();
+      return time >= startMs && time <= endMs;
+    });
+  }
+
   monthName(month: number): string {
     return formatPayrollPeriod(2026, month).replace(/\s+\d+$/, '');
   }
@@ -114,7 +156,7 @@ export class PayrollListComponent implements OnInit {
   }
 
   toggleAll(checked: boolean): void {
-    this.selected.set(checked ? new Set(this.payrolls().map((item) => item.id)) : new Set());
+    this.selected.set(checked ? new Set(this.visiblePayrolls().map((item) => item.id)) : new Set());
   }
 
   isChecked(id: string): boolean {

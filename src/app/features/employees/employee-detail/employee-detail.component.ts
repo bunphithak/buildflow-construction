@@ -60,9 +60,12 @@ export class EmployeeDetailComponent implements OnInit {
   readonly attendances = signal<Attendance[]>([]);
   readonly advances = signal<EmployeeAdvance[]>([]);
   readonly payrolls = signal<Payroll[]>([]);
-  readonly monthFilter = signal('');
+  readonly monthFilter = signal(Number(bangkokDateKey(new Date()).slice(5, 7)));
+  readonly yearFilter = signal(Number(bangkokDateKey(new Date()).slice(0, 4)));
   readonly jobFilter = signal('');
   readonly typeLabels = EMPLOYMENT_TYPE_LABELS;
+  readonly months = Array.from({ length: 12 }, (_, index) => index + 1);
+  readonly years = Array.from({ length: 6 }, (_, index) => new Date().getFullYear() - 2 + index);
 
   readonly tabs: { id: DetailTab; label: string }[] = [
     { id: 'general', label: 'ข้อมูลทั่วไป' },
@@ -75,13 +78,12 @@ export class EmployeeDetailComponent implements OnInit {
 
   readonly jobs = computed(() => this.jobService.jobs());
   readonly filteredAttendances = computed(() => {
-    const month = this.monthFilter();
+    const monthKey = `${this.yearFilter()}-${String(this.monthFilter()).padStart(2, '0')}`;
     const jobId = this.jobFilter();
     return this.attendances().filter((item) => {
       const matchesJob = !jobId || item.jobId === jobId;
       const key = bangkokDateKey(item.workDate.toDate()).slice(0, 7);
-      const matchesMonth = !month || key === month;
-      return matchesJob && matchesMonth;
+      return matchesJob && key === monthKey;
     });
   });
 
@@ -152,6 +154,10 @@ export class EmployeeDetailComponent implements OnInit {
       return '-';
     }
     return `${formatAmount(employee.overtimeRate)} บาท/ชั่วโมง`;
+  }
+
+  monthName(month: number): string {
+    return new Intl.DateTimeFormat('th-TH', { month: 'long' }).format(new Date(2026, month - 1, 1));
   }
 
   setTab(tab: DetailTab): void {

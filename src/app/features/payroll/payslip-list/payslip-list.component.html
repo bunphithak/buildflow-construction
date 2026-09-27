@@ -33,7 +33,13 @@
               <td>{{ money(item.netPay) }}</td>
               <td><app-status-badge kind="payroll" [status]="item.status" /></td>
               <td>
-                <a class="icon-btn" [routerLink]="['/payroll', item.id, 'payslip']" title="ดูสลิป" aria-label="ดูสลิป">
+                <a
+                  class="icon-btn"
+                  [routerLink]="['/payroll', item.id, 'payslip']"
+                  [queryParams]="{ from: 'payslips' }"
+                  title="ดูสลิป"
+                  aria-label="ดูสลิป"
+                >
                   <i class="fa fa-file-text-o" aria-hidden="true"></i>
                 </a>
               </td>

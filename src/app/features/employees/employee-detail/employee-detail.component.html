@@ -71,8 +71,20 @@
       <p class="hint">ตัวเลขนี้เป็นต้นทุนค่าแรงจาก Attendance ไม่ใช่เงินเดือนสุทธิจาก Payroll</p>
       <section class="card filters">
         <label>
-          เดือน
-          <input type="month" [ngModel]="monthFilter()" (ngModelChange)="monthFilter.set($event)" />
+          เดือนอ้างอิง
+          <select [ngModel]="monthFilter()" (ngModelChange)="monthFilter.set(+$event)">
+            @for (item of months; track item) {
+              <option [ngValue]="item">{{ monthName(item) }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          ปี (ค.ศ.)
+          <select [ngModel]="yearFilter()" (ngModelChange)="yearFilter.set(+$event)">
+            @for (item of years; track item) {
+              <option [ngValue]="item">{{ item }} (พ.ศ. {{ item + 543 }})</option>
+            }
+          </select>
         </label>
         <label>
           Job

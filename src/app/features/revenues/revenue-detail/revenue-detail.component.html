@@ -1,0 +1,30 @@
+@if (loading()) {
+  <app-loading-state />
+} @else if (!item()) {
+  <app-empty-state title="ไม่พบรายรับ" message="รายการนี้อาจถูกลบแล้ว" />
+} @else {
+  @if (item(); as row) {
+    <app-page-header title="รายละเอียดรายรับ" [subtitle]="row.description">
+      <div class="header-actions">
+        <a class="btn btn-ghost" routerLink="/revenues">กลับ</a>
+        <a class="btn btn-primary" [routerLink]="['/revenues', row.id, 'edit']">แก้ไข</a>
+      </div>
+    </app-page-header>
+
+    <section class="card details">
+      <div><span>วันที่</span><strong>{{ row.revenueDate.toDate() | thaiDate:'short' }}</strong></div>
+      <div><span>Job</span><strong>{{ jobLabel() }}</strong></div>
+      <div><span>ประเภท</span><strong>{{ typeLabels[row.type] }}</strong></div>
+      <div>
+        <span>สถานะ</span>
+        <strong><app-status-badge kind="revenue" [status]="row.status" /></strong>
+      </div>
+      <div><span>ยอดเงิน</span><strong>{{ money(row.amount) }}</strong></div>
+      <div><span>วิธีรับเงิน</span><strong>{{ row.paymentMethod || '-' }}</strong></div>
+      <div><span>เลขที่เอกสาร</span><strong>{{ row.documentNo || '-' }}</strong></div>
+      <div><span>ผู้บันทึก</span><strong>{{ row.createdBy || '-' }}</strong></div>
+      <div class="span-2"><span>รายละเอียด</span><strong>{{ row.description }}</strong></div>
+      <div class="span-2"><span>หมายเหตุ</span><strong>{{ row.note || '-' }}</strong></div>
+    </section>
+  }
+}

@@ -1,0 +1,116 @@
+<app-page-header title="รายรับ" subtitle="งวดงาน งานเพิ่ม และเงินที่รับจากลูกค้า">
+  <a routerLink="/revenues/new" class="btn btn-primary">+ เพิ่มรายรับ</a>
+</app-page-header>
+
+<section class="stats">
+  <article class="card"><span>รับแล้ว</span><strong>{{ money(totals().received) }}</strong></article>
+  <article class="card"><span>วางบิลแล้ว</span><strong>{{ money(totals().billed) }}</strong></article>
+  <article class="card"><span>วางบิลยังไม่รับ</span><strong>{{ money(totals().outstanding) }}</strong></article>
+  <article class="card"><span>งานเพิ่ม / เงินเพิ่ม</span><strong>{{ money(totals().variation) }}</strong></article>
+  <article class="card"><span>ยังไม่ถึง</span><strong>{{ money(totals().planned) }}</strong></article>
+</section>
+
+<section class="card filters">
+  <label>
+    ช่วงวันที่
+    <select [ngModel]="datePreset()" (ngModelChange)="onPresetChange($event)">
+      <option value="today">วันนี้</option>
+      <option value="month">เดือนนี้</option>
+      <option value="all">ทั้งหมด</option>
+      <option value="range">เลือกช่วงวันที่</option>
+    </select>
+  </label>
+  <label>วันที่เริ่ม <input type="date" [ngModel]="startDate()" (ngModelChange)="onStartDateChange($event)" /></label>
+  <label>วันที่สิ้นสุด <input type="date" [ngModel]="endDate()" (ngModelChange)="onEndDateChange($event)" /></label>
+  <label>
+    Job
+    <select [ngModel]="jobFilter()" (ngModelChange)="onJobChange($event)">
+      <option value="">ทั้งหมด</option>
+      @for (job of jobOptions(); track job.id) {
+        <option [value]="job.id">{{ job.jobCode }} · {{ job.jobName }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    ประเภท
+    <select [ngModel]="typeFilter()" (ngModelChange)="onTypeChange($event)">
+      <option value="">ทั้งหมด</option>
+      @for (type of types; track type) {
+        <option [value]="type">{{ typeLabels[type] }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    ค้นหา
+    <input type="search" placeholder="รายละเอียด, เอกสาร, หมายเหตุ" [ngModel]="search()" (ngModelChange)="onSearchChange($event)" />
+  </label>
+</section>
+
+@if (loading()) {
+  <app-loading-state />
+} @else if (filtered().length === 0) {
+  <app-empty-state title="ไม่พบรายรับ" message="คีย์งวดงานหรืองานต่อเติมจากปุ่มเพิ่มรายรับ" />
+} @else {
+  <section class="card table-card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>วันที่</th>
+            <th>Job</th>
+            <th>ประเภท</th>
+            <th>รายละเอียด</th>
+            <th>สถานะ</th>
+            <th>ยอดเงิน</th>
+            <th>เอกสาร</th>
+            <th>จัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of pagedItems(); track item.id) {
+            <tr>
+              <td>{{ item.revenueDate.toDate() | thaiDate:'short' }}</td>
+              <td>{{ jobLabel(item.jobId) }}</td>
+              <td>{{ typeLabels[item.type] }}</td>
+              <td>{{ item.description }}</td>
+              <td><app-status-badge kind="revenue" [status]="item.status" /></td>
+              <td>{{ money(item.amount) }}</td>
+              <td>{{ item.documentNo || '-' }}</td>
+              <td>
+                <div class="actions icon-actions">
+                  <a class="icon-btn" [routerLink]="['/revenues', item.id]" title="ดู" aria-label="ดู">
+                    <i class="fa fa-eye" aria-hidden="true"></i>
+                  </a>
+                  <a class="icon-btn" [routerLink]="['/revenues', item.id, 'edit']" title="แก้ไข" aria-label="แก้ไข">
+                    <i class="fa fa-pencil" aria-hidden="true"></i>
+                  </a>
+                  <button type="button" class="icon-btn danger" title="ลบ" aria-label="ลบ" (click)="remove(item)">
+                    <i class="fa fa-trash" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="pager">
+      <p>{{ rangeLabel() }}</p>
+      <label class="page-size">
+        ต่อหน้า
+        <select [ngModel]="pageSize()" (ngModelChange)="setPageSize(+$event)">
+          @for (size of pageSizes; track size) {
+            <option [ngValue]="size">{{ size }}</option>
+          }
+        </select>
+      </label>
+      <div class="pager-buttons">
+        <button type="button" class="btn btn-ghost" [disabled]="currentPage() === 1" (click)="goToPage(currentPage() - 1)">ก่อนหน้า</button>
+        @for (item of pageNumbers(); track item) {
+          <button type="button" class="page-btn" [class.active]="item === currentPage()" (click)="goToPage(item)">{{ item }}</button>
+        }
+        <button type="button" class="btn btn-ghost" [disabled]="currentPage() === totalPages()" (click)="goToPage(currentPage() + 1)">ถัดไป</button>
+      </div>
+    </div>
+  </section>
+}

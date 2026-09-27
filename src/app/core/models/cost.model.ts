@@ -38,6 +38,12 @@ export interface JobCostSummary {
   budgetUsedPercent: number;
   remainingBudget: number;
   breakdown: ExpenseBreakdownItem[];
+  variationAmount: number;
+  totalRevenue: number;
+  billedAmount: number;
+  receivedAmount: number;
+  outstandingAmount: number;
+  cashProfit: number;
 }
 
 export type BudgetAlertLevel = 'ok' | 'elevated' | 'warning' | 'over';

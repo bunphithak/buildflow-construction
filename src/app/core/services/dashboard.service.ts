@@ -9,6 +9,7 @@ import {
   isSiteClosedStatus,
   Job,
   JobCostSummary,
+  Revenue,
   UserRole,
 } from '../models';
 import { bangkokDateKey, roundMoney } from '../utils/datetime.util';
@@ -21,6 +22,7 @@ import { ExpenseService } from './expense.service';
 import { JobCostService } from './job-cost.service';
 import { JobService } from './job.service';
 import { PayrollService } from './payroll.service';
+import { RevenueService } from './revenue.service';
 
 interface CacheEntry {
   expires: number;
@@ -38,6 +40,7 @@ export class DashboardService {
   private readonly jobService = inject(JobService);
   private readonly jobCostService = inject(JobCostService);
   private readonly payrollService = inject(PayrollService);
+  private readonly revenueService = inject(RevenueService);
   private readonly authService = inject(AuthService);
   private readonly cache = new Map<string, CacheEntry>();
 
@@ -86,20 +89,22 @@ export class DashboardService {
   }
 
   private async fullSummary(range: DateRange, jobId?: string): Promise<DashboardSummary> {
-    const [attendancesRaw, expensesRaw, payrolls] = await Promise.all([
+    const [attendancesRaw, expensesRaw, revenuesRaw, payrolls] = await Promise.all([
       this.attendanceService.getAttendancesByDateRange(range.start, range.end),
       this.expenseService.getExpensesByDateRange(range.start, range.end),
+      this.revenueService.getRevenuesByDateRange(range.start, range.end),
       this.payrollService.getPayrollsInDateRange(range.start, range.end),
     ]);
     const attendances = jobId ? attendancesRaw.filter((item) => item.jobId === jobId) : attendancesRaw;
     const expenses = jobId ? expensesRaw.filter((item) => item.jobId === jobId) : expensesRaw;
+    const revenues = jobId ? revenuesRaw.filter((item) => item.jobId === jobId) : revenuesRaw;
     const jobs = this.jobService
       .jobs()
       .filter((job) => !jobId || job.id === jobId);
-    const jobCosts = this.buildJobCosts(jobs, attendances, expenses);
+    const jobCosts = this.buildJobCosts(jobs, attendances, expenses, revenues);
     const laborCost = roundMoney(attendances.reduce((sum, item) => sum + item.totalLaborCost, 0));
     const expenseCost = roundMoney(expenses.reduce((sum, item) => sum + item.amount, 0));
-    const monthly = this.monthlySeries(range, attendances, expenses, jobs);
+    const monthly = this.monthlySeries(range, attendances, expenses, revenues);
     const uniqueEmployees = new Set(attendances.map((item) => item.employeeId));
     return {
       employeeCount: jobId ? uniqueEmployees.size : this.employeeService.employees().length,
@@ -127,15 +132,27 @@ export class DashboardService {
     };
   }
 
-  private buildJobCosts(jobs: Job[], attendances: Attendance[], expenses: Expense[]): JobCostSummary[] {
+  private buildJobCosts(
+    jobs: Job[],
+    attendances: Attendance[],
+    expenses: Expense[],
+    revenues: Revenue[],
+  ): JobCostSummary[] {
     return jobs
       .filter((job) => job.status !== 'CANCELLED')
       .map((job) => {
         const jobAttendances = attendances.filter((item) => item.jobId === job.id);
         const jobExpenses = expenses.filter((item) => item.jobId === job.id);
+        const jobRevenues = revenues.filter((item) => item.jobId === job.id);
         const labor = roundMoney(jobAttendances.reduce((sum, item) => sum + item.totalLaborCost, 0));
         const expense = roundMoney(jobExpenses.reduce((sum, item) => sum + item.amount, 0));
-        return this.jobCostService.summarize(job, labor, expense, this.jobCostService.toBreakdown(jobExpenses));
+        return this.jobCostService.summarize(
+          job,
+          labor,
+          expense,
+          this.jobCostService.toBreakdown(jobExpenses),
+          jobRevenues,
+        );
       });
   }
 
@@ -174,11 +191,12 @@ export class DashboardService {
     range: DateRange,
     attendances: Attendance[],
     expenses: Expense[],
-    jobs: Job[],
+    revenues: Revenue[],
   ): { labor: ChartSeries; expense: ChartSeries; total: ChartSeries; profit: ChartSeries } {
     const keys = this.monthKeys(range);
     const laborMap = new Map<string, number>();
     const expenseMap = new Map<string, number>();
+    const receivedMap = new Map<string, number>();
     for (const row of attendances) {
       const key = monthKeyFromDate(row.workDate.toDate());
       laborMap.set(key, roundMoney((laborMap.get(key) ?? 0) + row.totalLaborCost));
@@ -187,14 +205,20 @@ export class DashboardService {
       const key = monthKeyFromDate(row.expenseDate.toDate());
       expenseMap.set(key, roundMoney((expenseMap.get(key) ?? 0) + row.amount));
     }
-    const revenue = jobs
-      .filter((job) => job.status !== 'CANCELLED')
-      .reduce((sum, job) => sum + job.contractValue, 0);
+    for (const row of revenues) {
+      if (row.status !== 'RECEIVED') {
+        continue;
+      }
+      const key = monthKeyFromDate(row.revenueDate.toDate());
+      receivedMap.set(key, roundMoney((receivedMap.get(key) ?? 0) + row.amount));
+    }
     const labels = keys.map((key) => formatMonthKey(key));
     const laborValues = keys.map((key) => laborMap.get(key) ?? 0);
     const expenseValues = keys.map((key) => expenseMap.get(key) ?? 0);
     const totalValues = keys.map((_, index) => roundMoney(laborValues[index] + expenseValues[index]));
-    const profitValues = totalValues.map((cost) => roundMoney(revenue / Math.max(keys.length, 1) - cost));
+    const profitValues = keys.map((key, index) =>
+      roundMoney((receivedMap.get(key) ?? 0) - totalValues[index]),
+    );
     return {
       labor: { labels, values: laborValues },
       expense: { labels, values: expenseValues },

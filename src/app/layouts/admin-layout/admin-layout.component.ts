@@ -48,17 +48,18 @@ export class AdminLayoutComponent {
   });
 
   private readonly allNavItems: NavItem[] = [
-    { label: 'Dashboard', path: '/dashboard', icon: '▣', roles: ['ADMIN'] },
-    { label: 'พนักงาน', path: '/employees', icon: '☺', roles: ['ADMIN'] },
-    { label: 'ลงเวลาทำงาน', path: '/attendance/daily', icon: '◷', roles: ['ADMIN'] },
-    { label: 'ลงเวลาทำงาน', path: '/attendance/today', icon: '◷', roles: ['MANAGER'] },
-    { label: 'งานก่อสร้าง', path: '/jobs', icon: '⌂', roles: ['ADMIN'] },
-    { label: 'ค่าใช้จ่าย', path: '/expenses', icon: '฿', roles: ['ADMIN', 'MANAGER'] },
-    { label: 'Payroll', path: '/payroll', icon: '▤', roles: ['ADMIN'] },
-    { label: 'สลิปเงินเดือน', path: '/payslips', icon: '✉', roles: ['ADMIN'] },
-    { label: 'รายงาน', path: '/reports', icon: '▦', roles: ['ADMIN'] },
-    { label: 'ผู้ใช้', path: '/settings/users', icon: '☻', roles: ['ADMIN'] },
-    { label: 'ตั้งค่า', path: '/settings', icon: '⚙', roles: ['ADMIN'], exact: true },
+    { label: 'Dashboard', path: '/dashboard', icon: 'fa-tachometer', roles: ['ADMIN'] },
+    { label: 'พนักงาน', path: '/employees', icon: 'fa-users', roles: ['ADMIN'] },
+    { label: 'ลงเวลาทำงาน', path: '/attendance/daily', icon: 'fa-clock-o', roles: ['ADMIN'] },
+    { label: 'ลงเวลาทำงาน', path: '/attendance/today', icon: 'fa-clock-o', roles: ['MANAGER'] },
+    { label: 'งานก่อสร้าง', path: '/jobs', icon: 'fa-building', roles: ['ADMIN'] },
+    { label: 'ค่าใช้จ่าย', path: '/expenses', icon: 'fa-credit-card', roles: ['ADMIN', 'MANAGER'] },
+    { label: 'รายรับ', path: '/revenues', icon: 'fa-line-chart', roles: ['ADMIN'] },
+    { label: 'Payroll', path: '/payroll', icon: 'fa-calculator', roles: ['ADMIN'] },
+    { label: 'สลิปเงินเดือน', path: '/payslips', icon: 'fa-file-text-o', roles: ['ADMIN'] },
+    { label: 'รายงาน', path: '/reports', icon: 'fa-bar-chart', roles: ['ADMIN'] },
+    { label: 'ผู้ใช้', path: '/settings/users', icon: 'fa-user', roles: ['ADMIN'] },
+    { label: 'ตั้งค่า', path: '/settings', icon: 'fa-cog', roles: ['ADMIN'], exact: true },
   ];
 
   readonly navItems = computed(() =>

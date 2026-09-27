@@ -1,14 +1,13 @@
 @if (job(); as current) {
   <app-page-header [title]="current.jobCode" [subtitle]="current.jobName + ' · ' + current.customerName">
     <div class="header-actions">
-      <app-status-badge kind="job" [status]="current.status" />
       @if (canManage()) {
-        <a [routerLink]="['/jobs', current.id, 'edit']" class="btn btn-primary">แก้ไข Job</a>
         <select class="status-select" [ngModel]="current.status" (ngModelChange)="onStatusChange($event)">
           @for (status of statuses; track status) {
             <option [value]="status">{{ statusLabels[status] }}</option>
           }
         </select>
+        <a [routerLink]="['/jobs', current.id, 'edit']" class="btn btn-primary">แก้ไข Job</a>
       }
     </div>
   </app-page-header>
@@ -27,7 +26,11 @@
       <article class="card"><span>ค่าแรง</span><strong>{{ money(cost.laborCost) }}</strong></article>
       <article class="card"><span>ค่าใช้จ่าย</span><strong>{{ money(cost.expenseCost) }}</strong></article>
       <article class="card"><span>ต้นทุนรวม</span><strong>{{ money(cost.totalCost) }}</strong></article>
-      <article class="card"><span>กำไรประมาณการ</span><strong>{{ money(cost.estimatedProfit) }}</strong></article>
+      <article class="card"><span>งานเพิ่ม</span><strong>{{ money(cost.variationAmount) }}</strong></article>
+      <article class="card"><span>มูลค่างานรวม</span><strong>{{ money(cost.totalRevenue) }}</strong></article>
+      <article class="card"><span>รับแล้ว</span><strong>{{ money(cost.receivedAmount) }}</strong></article>
+      <article class="card"><span>เหลือรับ</span><strong>{{ money(cost.outstandingAmount) }}</strong></article>
+      <article class="card"><span>กำไรตามงาน</span><strong>{{ money(cost.estimatedProfit) }}</strong></article>
       <article class="card"><span>Margin</span><strong>{{ cost.profitMargin | number:'1.2-2' }}%</strong></article>
       <article class="card"><span>ใช้ไปจากงบ</span><strong>{{ cost.budgetUsedPercent | number:'1.2-2' }}%</strong></article>
     </section>
@@ -382,6 +385,50 @@
         </div>
       </section>
     }
+  } @else if (activeTab() === 'revenue') {
+    @if (canAddRevenue()) {
+      <div class="tab-actions">
+        <a class="btn btn-primary" [routerLink]="['/revenues/new']" [queryParams]="{ jobId: job.id }">+ รายรับ</a>
+      </div>
+    } @else if (canManage()) {
+      <p class="locked">งานนี้ถูกยกเลิกแล้ว ไม่สามารถเพิ่มรายรับใหม่ได้</p>
+    }
+    @if (jobRevenues().length === 0) {
+      <app-empty-state title="ยังไม่มีรายรับ" message="บันทึกงวดงาน งานต่อเติม หรือเงินที่รับจากลูกค้าจากปุ่มด้านบน" />
+    } @else {
+      <section class="card table-card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>วันที่</th>
+                <th>ประเภท</th>
+                <th>รายละเอียด</th>
+                <th>ยอดเงิน</th>
+                <th>สถานะ</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of jobRevenues(); track item.id) {
+                <tr>
+                  <td>{{ item.revenueDate.toDate() | thaiDate:'short' }}</td>
+                  <td>{{ revenueTypeLabels[item.type] }}</td>
+                  <td>{{ item.description }}</td>
+                  <td>{{ money(item.amount) }}</td>
+                  <td><app-status-badge kind="revenue" [status]="item.status" /></td>
+                  <td>
+                    <a class="icon-btn" [routerLink]="['/revenues', item.id]" title="ดู" aria-label="ดู">
+                      <i class="fa fa-eye" aria-hidden="true"></i>
+                    </a>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
   } @else if (activeTab() === 'summary') {
     @if (cost(); as summary) {
       <section class="mini-stats">
@@ -390,7 +437,11 @@
         <article class="card"><span>ค่าแรงพนักงาน</span><strong>{{ money(summary.laborCost) }}</strong></article>
         <article class="card"><span>ค่าใช้จ่าย</span><strong>{{ money(summary.expenseCost) }}</strong></article>
         <article class="card"><span>ต้นทุนรวม</span><strong>{{ money(summary.totalCost) }}</strong></article>
-        <article class="card"><span>กำไรประมาณการ</span><strong>{{ money(summary.estimatedProfit) }}</strong></article>
+        <article class="card"><span>งานเพิ่ม</span><strong>{{ money(summary.variationAmount) }}</strong></article>
+        <article class="card"><span>มูลค่างานรวม</span><strong>{{ money(summary.totalRevenue) }}</strong></article>
+        <article class="card"><span>รับแล้ว</span><strong>{{ money(summary.receivedAmount) }}</strong></article>
+        <article class="card"><span>เหลือรับ</span><strong>{{ money(summary.outstandingAmount) }}</strong></article>
+        <article class="card"><span>กำไรตามงาน</span><strong>{{ money(summary.estimatedProfit) }}</strong></article>
         <article class="card"><span>งบคงเหลือ</span><strong>{{ money(summary.remainingBudget) }}</strong></article>
         <article class="card"><span>{{ budgetIcon() }} {{ budgetLabel() }}</span><strong>{{ summary.budgetUsedPercent | number:'1.2-2' }}%</strong></article>
       </section>

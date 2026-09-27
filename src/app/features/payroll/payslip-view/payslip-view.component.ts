@@ -60,6 +60,13 @@ export class PayslipViewComponent implements OnInit {
     }
   }
 
+  backLink(): string {
+    if (this.route.snapshot.queryParamMap.get('from') === 'payslips') {
+      return '/payslips';
+    }
+    return '/payroll';
+  }
+
   logoSrc(): string {
     const url = this.companySettings.settings().logoUrl?.trim();
     if (!url || url.includes('buildflow-logo')) {

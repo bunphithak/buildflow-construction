@@ -6,6 +6,7 @@ export const COLLECTIONS = {
   attendances: 'attendances',
   workStoppages: 'workStoppages',
   expenses: 'expenses',
+  revenues: 'revenues',
   expenseCategories: 'expenseCategories',
   payrolls: 'payrolls',
   payslips: 'payslips',

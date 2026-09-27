@@ -22,6 +22,15 @@
       }
     </select>
   </label>
+  <label>
+    Job
+    <select [ngModel]="jobId()" (ngModelChange)="setJob($event)">
+      <option value="">ทั้งหมด</option>
+      @for (job of jobOptions(); track job.id) {
+        <option [value]="job.id">{{ job.jobCode }} · {{ job.jobName }}</option>
+      }
+    </select>
+  </label>
 </section>
 
 <section class="stats">
@@ -42,8 +51,11 @@
 
 @if (loading()) {
   <app-loading-state />
-} @else if (payrolls().length === 0) {
-  <app-empty-state title="ยังไม่มี Payroll ในงวดนี้" message="กดสร้างงวด Payroll จากพนักงานที่ใช้งานอยู่" />
+} @else if (visiblePayrolls().length === 0) {
+  <app-empty-state
+    title="ยังไม่มี Payroll ในงวดนี้"
+    [message]="jobId() ? 'ไม่มี Payroll ของคนที่ลงเวลาใน Job ที่เลือก' : 'กดสร้างงวด Payroll จากพนักงานที่ใช้งานอยู่'"
+  />
 } @else {
   <section class="card table-card desktop-table">
     <div class="table-wrap">
@@ -67,7 +79,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (item of payrolls(); track item.id) {
+          @for (item of visiblePayrolls(); track item.id) {
             <tr>
               <td><input type="checkbox" [checked]="isChecked(item.id)" (change)="onCheck(item.id, $event)" /></td>
               <td>{{ employeeCode(item.employeeId) }}</td>
@@ -96,7 +108,7 @@
   </section>
 
   <section class="mobile-cards">
-    @for (item of payrolls(); track item.id) {
+    @for (item of visiblePayrolls(); track item.id) {
       <article class="card mobile-card">
         <label class="check">
           <input type="checkbox" [checked]="isChecked(item.id)" (change)="onCheck(item.id, $event)" />

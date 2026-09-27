@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { Expense, Job, JobCostSummary } from '../models';
+import { Expense, Job, JobCostSummary, Revenue, summarizeRevenues } from '../models';
 import { ExpenseBreakdownItem } from '../models/cost.model';
 import { roundMoney } from '../utils/datetime.util';
 import { calculateJobCostSummary } from '../utils/job-cost.util';
@@ -7,6 +7,7 @@ import { AttendanceService } from './attendance.service';
 import { ExpenseService } from './expense.service';
 import { ExpenseCategoryService } from './expense-category.service';
 import { JobService } from './job.service';
+import { RevenueService } from './revenue.service';
 
 @Injectable({
   providedIn: 'root',
@@ -16,15 +17,18 @@ export class JobCostService {
   private readonly attendanceService = inject(AttendanceService);
   private readonly expenseService = inject(ExpenseService);
   private readonly categoryService = inject(ExpenseCategoryService);
+  private readonly revenueService = inject(RevenueService);
 
   summarize(
     job: Job,
     laborCost = 0,
     expenseCost = 0,
     breakdown: ExpenseBreakdownItem[] = [],
+    revenues: Revenue[] = [],
   ): JobCostSummary {
     const grouped = this.groupKnownCosts(breakdown);
     const withLabor = this.withLaborBreakdown(laborCost, breakdown);
+    const revenue = summarizeRevenues(revenues);
     return calculateJobCostSummary({
       jobId: job.id,
       jobName: job.jobName,
@@ -37,6 +41,9 @@ export class JobCostService {
       equipmentCost: grouped.machine,
       otherExpense: grouped.other,
       breakdown: withLabor,
+      variationAmount: revenue.variation,
+      billedAmount: revenue.billed,
+      receivedAmount: revenue.received,
     });
   }
 
@@ -60,7 +67,14 @@ export class JobCostService {
     }
     const laborCost = await this.getLaborCost(jobId);
     const expenses = await this.expenseService.getExpensesByJob(jobId);
-    return this.calculateJobCostSummary(job, laborCost, this.expenseTotal(expenses), this.toBreakdown(expenses));
+    const revenues = await this.revenueService.getRevenuesByJob(jobId);
+    return this.calculateJobCostSummary(
+      job,
+      laborCost,
+      this.expenseTotal(expenses),
+      this.toBreakdown(expenses),
+      revenues,
+    );
   }
 
   async getJobCostSummaryByDateRange(
@@ -82,11 +96,17 @@ export class JobCostService {
       startDate,
       endDate,
     );
+    const revenues = await this.revenueService.getRevenuesByJobAndDateRange(
+      jobId,
+      startDate,
+      endDate,
+    );
     return this.calculateJobCostSummary(
       job,
       laborCost,
       this.expenseTotal(expenses),
       this.toBreakdown(expenses),
+      revenues,
     );
   }
 
@@ -95,8 +115,9 @@ export class JobCostService {
     laborCost: number,
     expenseCost: number,
     breakdown: ExpenseBreakdownItem[] = [],
+    revenues: Revenue[] = [],
   ): JobCostSummary {
-    return this.summarize(job, laborCost, expenseCost, breakdown);
+    return this.summarize(job, laborCost, expenseCost, breakdown, revenues);
   }
 
   toBreakdown(expenses: Expense[]): ExpenseBreakdownItem[] {

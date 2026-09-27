@@ -5,6 +5,7 @@ export * from './job.model';
 export * from './attendance.model';
 export * from './work-stoppage.model';
 export * from './expense.model';
+export * from './revenue.model';
 export * from './payroll.model';
 export * from './cost.model';
 export * from './report.model';

@@ -75,6 +75,11 @@ service cloud.firestore {
       );
     }
 
+    match /revenues/{id} {
+      allow read: if isAdmin() || isManager();
+      allow write: if isAdmin();
+    }
+
     match /expenseCategories/{id} {
       allow read: if isSignedIn();
       allow write: if isAdmin();

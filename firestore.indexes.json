@@ -41,11 +41,11 @@
       ]
     },
     {
-      "collectionGroup": "expenses",
+      "collectionGroup": "revenues",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "jobId", "order": "ASCENDING" },
-        { "fieldPath": "expenseDate", "order": "ASCENDING" }
+        { "fieldPath": "revenueDate", "order": "ASCENDING" }
       ]
     },
     {

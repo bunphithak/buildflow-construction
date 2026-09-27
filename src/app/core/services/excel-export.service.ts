@@ -83,10 +83,13 @@ export class ExcelExportService {
       [
         'งาน',
         'มูลค่างาน',
+        'งานเพิ่ม',
+        'รับแล้ว',
+        'เหลือรับ',
         'ค่าแรง',
         'ค่าใช้จ่าย',
         'ต้นทุนรวม',
-        'กำไรประมาณการ',
+        'กำไรตามงาน',
         'Margin %',
         'ใช้ไปจากงบ %',
         'งบคงเหลือ',
@@ -94,6 +97,9 @@ export class ExcelExportService {
       rows.map((row) => [
         row.jobName,
         row.contractValue,
+        row.variationAmount,
+        row.receivedAmount,
+        row.outstandingAmount,
         row.laborCost,
         row.expenseCost,
         row.totalCost,
@@ -102,7 +108,7 @@ export class ExcelExportService {
         row.budgetUsedPercent,
         row.remainingBudget,
       ]),
-      [2, 3, 4, 5, 6, 9],
+      [2, 3, 4, 5, 6, 7, 8, 9, 12],
     );
   }
 

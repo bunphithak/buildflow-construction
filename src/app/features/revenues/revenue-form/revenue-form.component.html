@@ -1,0 +1,93 @@
+<app-page-header
+  [title]="title"
+  [subtitle]="isEdit ? 'แก้ไขงวดงานหรืองานเพิ่ม' : 'คีย์เงินที่รับจากลูกค้า งวดงาน และงานต่อเติม'"
+/>
+
+@if (loading()) {
+  <app-loading-state message="กำลังโหลดรายรับ..." />
+} @else {
+  <form class="revenue-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    @if (formError(); as message) {
+      <p class="form-error">{{ message }}</p>
+    }
+
+    <section class="card">
+      <h2>งานและงวด</h2>
+      <div class="grid">
+        <label class="span-2">
+          Job *
+          <select formControlName="jobId">
+            <option value="">เลือกงานก่อสร้าง</option>
+            @for (job of selectableJobs(); track job.id) {
+              <option [value]="job.id">{{ job.jobCode }} · {{ job.jobName }}</option>
+            }
+          </select>
+          @if (hasError('jobId', 'required')) {
+            <small>กรุณาเลือก Job</small>
+          }
+        </label>
+        <label>
+          วันที่ *
+          <input type="date" formControlName="revenueDate" />
+          @if (hasError('revenueDate', 'required')) {
+            <small>กรุณาเลือกวันที่</small>
+          }
+        </label>
+        <label>
+          ประเภท *
+          <select formControlName="type">
+            @for (type of types; track type) {
+              <option [value]="type">{{ typeLabels[type] }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          สถานะ *
+          <select formControlName="status">
+            @for (status of statuses; track status) {
+              <option [value]="status">{{ statusLabels[status] }}</option>
+            }
+          </select>
+        </label>
+        <label class="span-2">
+          รายละเอียดงวด *
+          <input type="text" formControlName="description" placeholder="เช่น มัดจำ 30%, งวดโครงสร้าง, ต่อเติมห้องครัว" />
+          @if (hasError('description', 'required')) {
+            <small>กรุณากรอกรายละเอียด</small>
+          }
+        </label>
+        <label>
+          ยอดเงิน *
+          <input type="number" min="0.01" step="0.01" inputmode="decimal" formControlName="amount" />
+          @if (hasError('amount', 'required') || hasError('amount', 'min')) {
+            <small>ยอดเงินต้องมากกว่า 0</small>
+          }
+        </label>
+        <label>
+          วิธีรับเงิน
+          <select formControlName="paymentMethod">
+            <option value="">ไม่ระบุ</option>
+            @for (method of paymentMethods; track method) {
+              <option [value]="method">{{ method }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          เลขที่เอกสาร
+          <input type="text" formControlName="documentNo" placeholder="ใบเสร็จ / สลิปโอน" />
+        </label>
+        <label class="span-2">
+          หมายเหตุ
+          <textarea rows="3" formControlName="note"></textarea>
+        </label>
+      </div>
+    </section>
+
+    <div class="actions">
+      <a routerLink="/revenues" class="btn btn-ghost">กลับรายการ</a>
+      <button type="submit" class="btn btn-primary" [disabled]="saving()">
+        {{ saving() ? 'กำลังบันทึก...' : 'บันทึก' }}
+      </button>
+    </div>
+  </form>
+}

@@ -11,6 +11,7 @@ import {
   LaborReportRow,
   Payroll,
   PayrollReportRow,
+  Revenue,
 } from '../models';
 import { Attendance, ATTENDANCE_STATUS_LABELS, isWorkedAttendanceStatus } from '../models/attendance.model';
 import { PAYROLL_STATUS_LABELS } from '../models/payroll.model';
@@ -23,6 +24,7 @@ import { ExpenseService } from './expense.service';
 import { JobCostService } from './job-cost.service';
 import { JobService } from './job.service';
 import { PayrollService } from './payroll.service';
+import { RevenueService } from './revenue.service';
 import { BusyService } from './busy.service';
 
 export interface AttendanceReportFilter {
@@ -42,6 +44,7 @@ export class ReportService {
   private readonly jobService = inject(JobService);
   private readonly jobCostService = inject(JobCostService);
   private readonly payrollService = inject(PayrollService);
+  private readonly revenueService = inject(RevenueService);
   private readonly categoryService = inject(ExpenseCategoryService);
   private readonly busy = inject(BusyService);
 
@@ -146,14 +149,15 @@ export class ReportService {
   }
 
   async generateJobCostReport(range: DateRange): Promise<JobCostSummary[]> {
-    const [attendances, expenses] = await Promise.all([
+    const [attendances, expenses, revenues] = await Promise.all([
       this.attendanceService.getAttendancesByDateRange(range.start, range.end),
       this.expenseService.getExpensesByDateRange(range.start, range.end),
+      this.revenueService.getRevenuesByDateRange(range.start, range.end),
     ]);
     return this.jobService
       .jobs()
       .filter((job) => job.status !== 'CANCELLED')
-      .map((job) => this.toJobCost(job, attendances, expenses));
+      .map((job) => this.toJobCost(job, attendances, expenses, revenues));
   }
 
   async generatePayrollReport(year: number, month: number, employeeId?: string): Promise<PayrollReportRow[]> {
@@ -165,16 +169,19 @@ export class ReportService {
   }
 
   async generateExecutiveReport(range: DateRange): Promise<ExecutiveReport> {
-    const [attendances, expenses, payrolls] = await Promise.all([
+    const [attendances, expenses, revenues, payrolls] = await Promise.all([
       this.attendanceService.getAttendancesByDateRange(range.start, range.end),
       this.expenseService.getExpensesByDateRange(range.start, range.end),
+      this.revenueService.getRevenuesByDateRange(range.start, range.end),
       this.payrollService.getPayrollsInDateRange(range.start, range.end),
     ]);
     const jobs = this.jobService.jobs().filter((job) => job.status !== 'CANCELLED');
     const laborCost = roundMoney(attendances.reduce((sum, item) => sum + item.totalLaborCost, 0));
     const expenseCost = roundMoney(expenses.reduce((sum, item) => sum + item.amount, 0));
     const totalCost = roundMoney(laborCost + expenseCost);
-    const totalRevenue = roundMoney(jobs.reduce((sum, job) => sum + job.contractValue, 0));
+    const totalRevenue = roundMoney(
+      revenues.filter((item) => item.status === 'RECEIVED').reduce((sum, item) => sum + item.amount, 0),
+    );
     const totalProfit = roundMoney(totalRevenue - totalCost);
     return {
       totalRevenue,
@@ -196,14 +203,21 @@ export class ReportService {
     };
   }
 
-  private toJobCost(job: Job, attendances: Attendance[], expenses: Expense[]): JobCostSummary {
+  private toJobCost(
+    job: Job,
+    attendances: Attendance[],
+    expenses: Expense[],
+    revenues: Revenue[],
+  ): JobCostSummary {
     const jobAttendances = attendances.filter((item) => item.jobId === job.id);
     const jobExpenses = expenses.filter((item) => item.jobId === job.id);
+    const jobRevenues = revenues.filter((item) => item.jobId === job.id);
     return this.jobCostService.summarize(
       job,
       roundMoney(jobAttendances.reduce((sum, item) => sum + item.totalLaborCost, 0)),
       roundMoney(jobExpenses.reduce((sum, item) => sum + item.amount, 0)),
       this.jobCostService.toBreakdown(jobExpenses),
+      jobRevenues,
     );
   }
 

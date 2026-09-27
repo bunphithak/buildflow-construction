@@ -61,6 +61,13 @@ export const routes: Routes = [
           import('./features/expenses/expenses.routes').then((m) => m.expenseRoutes),
       },
       {
+        path: 'revenues',
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] },
+        loadChildren: () =>
+          import('./features/revenues/revenues.routes').then((m) => m.revenueRoutes),
+      },
+      {
         path: 'payroll',
         loadChildren: () =>
           import('./features/payroll/payroll.routes').then((m) => m.payrollRoutes),

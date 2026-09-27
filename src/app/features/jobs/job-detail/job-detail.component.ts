@@ -3,7 +3,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
-import { Attendance, AttendanceLaborRow, Employee, EMPLOYMENT_TYPE_LABELS, Expense, isHalfDayStatus, Job, JOB_STATUS_LABELS, JOB_STATUSES, JobEmployee, JobStatus } from '../../../core/models';
+import { Attendance, AttendanceLaborRow, Employee, EMPLOYMENT_TYPE_LABELS, Expense, isHalfDayStatus, Job, JOB_STATUS_LABELS, JOB_STATUSES, JobEmployee, JobStatus, Revenue, REVENUE_TYPE_LABELS, canCreateJobRevenue } from '../../../core/models';
 import { AttendanceService, attendanceTimeLabel } from '../../../core/services/attendance.service';
 import { JobCostSummary } from '../../../core/models/cost.model';
 import { EmployeeService, formatEmployeeWage } from '../../../core/services/employee.service';
@@ -11,6 +11,7 @@ import { ExpenseService } from '../../../core/services/expense.service';
 import { JobCostService } from '../../../core/services/job-cost.service';
 import { JobEmployeeService } from '../../../core/services/job-employee.service';
 import { JobService, mapJobError } from '../../../core/services/job.service';
+import { RevenueService } from '../../../core/services/revenue.service';
 import { canCreateJobExpense } from '../../../core/utils/expense.util';
 import { formatBaht, toDate, toDateInputValue } from '../../../core/utils/form.util';
 import {
@@ -32,7 +33,7 @@ import { ConfirmDialogService } from '../../../shared/services/confirm-dialog.se
 import { ToastService } from '../../../shared/services/toast.service';
 import { AssignEmployeeDialogComponent } from '../assign-employee-dialog/assign-employee-dialog.component';
 
-type JobTab = 'overview' | 'employees' | 'attendance' | 'labor' | 'expenses' | 'summary';
+type JobTab = 'overview' | 'employees' | 'attendance' | 'labor' | 'expenses' | 'revenue' | 'summary';
 
 interface JobMemberRow {
   assignment: JobEmployee;
@@ -65,6 +66,7 @@ export class JobDetailComponent implements OnInit {
   private readonly jobCostService = inject(JobCostService);
   private readonly attendanceService = inject(AttendanceService);
   private readonly expenseService = inject(ExpenseService);
+  private readonly revenueService = inject(RevenueService);
   readonly authService = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
@@ -80,6 +82,7 @@ export class JobDetailComponent implements OnInit {
   readonly statusLabels = JOB_STATUS_LABELS;
   readonly statuses = JOB_STATUSES;
   readonly typeLabels = EMPLOYMENT_TYPE_LABELS;
+  readonly revenueTypeLabels = REVENUE_TYPE_LABELS;
   readonly canManage = computed(() => this.authService.hasRole(['ADMIN']));
 
   readonly tabs: { id: JobTab; label: string }[] = [
@@ -88,6 +91,7 @@ export class JobDetailComponent implements OnInit {
     { id: 'attendance', label: 'ลงเวลาทำงาน' },
     { id: 'labor', label: 'ค่าแรง' },
     { id: 'expenses', label: 'ค่าใช้จ่าย' },
+    { id: 'revenue', label: 'รายรับ' },
     { id: 'summary', label: 'สรุปต้นทุน' },
   ];
 
@@ -134,6 +138,7 @@ export class JobDetailComponent implements OnInit {
     return `แสดง ${start}-${end} จาก ${total} รายการ`;
   });
   readonly jobExpenses = signal<Expense[]>([]);
+  readonly jobRevenues = signal<Revenue[]>([]);
   readonly laborFilter = signal<'all' | 'month' | 'range'>('all');
   readonly laborStart = signal(toDateInputValue(new Date(new Date().getFullYear(), new Date().getMonth(), 1)));
   readonly laborEnd = signal(toDateInputValue(new Date()));
@@ -178,6 +183,7 @@ export class JobDetailComponent implements OnInit {
           this.laborTotal(),
           this.expenseTotal(),
           this.jobCostService.toBreakdown(this.jobExpenses()),
+          this.jobRevenues(),
         )
       : null;
   });
@@ -213,6 +219,11 @@ export class JobDetailComponent implements OnInit {
   readonly canAddExpense = computed(() => {
     const job = this.job();
     return !!job && this.authService.hasRole(['ADMIN', 'MANAGER']) && canCreateJobExpense(job.status);
+  });
+
+  readonly canAddRevenue = computed(() => {
+    const job = this.job();
+    return !!job && this.canManage() && canCreateJobRevenue(job.status);
   });
 
   readonly assignedIds = computed(() => this.activeMembers().map((item) => item.assignment.employeeId));
@@ -257,6 +268,7 @@ export class JobDetailComponent implements OnInit {
       this.jobAttendances.set(attendances);
       const expenses = await this.expenseService.getExpensesByJob(id);
       this.jobExpenses.set(expenses);
+      this.jobRevenues.set(await this.revenueService.getRevenuesByJob(id));
     } catch (error) {
       console.error('Failed to load job detail', error);
       this.toast.error('ไม่สามารถโหลดข้อมูลงานได้');
@@ -400,9 +412,14 @@ export class JobDetailComponent implements OnInit {
       return;
     }
     if (isLockedJobStatus(status)) {
+      const outstanding = this.cost()?.outstandingAmount ?? 0;
+      const extra =
+        outstanding > 0
+          ? `\n\nงานนี้ยังเหลือรับ ${this.money(outstanding)}`
+          : '';
       const confirmed = await this.confirmDialog.confirm({
         title: `เปลี่ยนสถานะเป็น${JOB_STATUS_LABELS[status]}`,
-        message: `ต้องการเปลี่ยนสถานะงานนี้เป็น${JOB_STATUS_LABELS[status]} หรือไม่?`,
+        message: `ต้องการเปลี่ยนสถานะงานนี้เป็น${JOB_STATUS_LABELS[status]} หรือไม่?${extra}`,
         confirmLabel: 'ยืนยัน',
       });
       if (!confirmed) {

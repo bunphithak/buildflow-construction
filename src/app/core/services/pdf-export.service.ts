@@ -92,10 +92,13 @@ export class PdfExportService {
       doc.setFontSize(11);
       const lines = [
         ['มูลค่างาน', this.money(row.contractValue)],
+        ['งานเพิ่ม', this.money(row.variationAmount)],
+        ['รับแล้ว', this.money(row.receivedAmount)],
+        ['เหลือรับ', this.money(row.outstandingAmount)],
         ['ค่าแรง', this.money(row.laborCost)],
         ['ค่าใช้จ่าย', this.money(row.expenseCost)],
         ['ต้นทุนรวม', this.money(row.totalCost)],
-        ['กำไร', this.money(row.estimatedProfit)],
+        ['กำไรตามงาน', this.money(row.estimatedProfit)],
         ['Margin', `${row.profitMargin.toFixed(2)}%`],
         ['งบคงเหลือ', this.money(row.remainingBudget)],
       ];
