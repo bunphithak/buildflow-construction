@@ -2,7 +2,7 @@ import { Timestamp } from '@angular/fire/firestore';
 import { Auditable } from './common.model';
 
 export type EmploymentType = 'MONTHLY' | 'DAILY';
-export type EmployeeStatus = 'ACTIVE' | 'INACTIVE';
+export type EmployeeStatus = 'ACTIVE' | 'INACTIVE' | 'RESIGNED';
 export type EmployeeNationality = 'TH' | 'KH' | 'MM' | 'OTHER';
 export type EmployeeGender = 'MALE' | 'FEMALE';
 
@@ -14,6 +14,7 @@ export const EMPLOYMENT_TYPE_LABELS: Record<EmploymentType, string> = {
 export const EMPLOYEE_STATUS_LABELS: Record<EmployeeStatus, string> = {
   ACTIVE: 'ใช้งาน',
   INACTIVE: 'ปิดใช้งาน',
+  RESIGNED: 'ลาออก',
 };
 
 export const EMPLOYEE_NATIONALITIES: readonly { value: EmployeeNationality; label: string }[] = [

@@ -72,6 +72,7 @@
       <option value="">ทั้งหมด</option>
       <option value="ACTIVE">ใช้งาน</option>
       <option value="INACTIVE">ปิดใช้งาน</option>
+      <option value="RESIGNED">ลาออก</option>
     </select>
   </label>
 </section>
@@ -143,7 +144,7 @@
                     <i
                       class="fa"
                       [class.fa-ban]="employee.status === 'ACTIVE'"
-                      [class.fa-check]="employee.status === 'INACTIVE'"
+                      [class.fa-check]="employee.status !== 'ACTIVE'"
                       aria-hidden="true"
                     ></i>
                   </button>

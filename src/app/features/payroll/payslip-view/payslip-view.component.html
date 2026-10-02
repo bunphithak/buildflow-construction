@@ -77,7 +77,7 @@
                 }
                 @for (row of incomes(); track row.id) {
                   <tr>
-                    <td>{{ row.category }}</td>
+                    <td>{{ adjustmentLabel(row) }}</td>
                     <td class="num">{{ amount(row.amount) }}</td>
                   </tr>
                 }
@@ -89,22 +89,35 @@
             </td>
             <td class="pad0 deduct-bg">
               <table class="inner">
-                <tr>
-                  <td>ขาดงาน / Absent / အလုပ်ပျက်</td>
-                  <td class="num">{{ amount(absentAmount()) }}</td>
-                </tr>
-                <tr>
-                  <td>เงินร้านค้า / Store Credit / ဆိုင်ကြွေး</td>
-                  <td class="num">{{ amount(storeCredit()) }}</td>
-                </tr>
-                <tr>
-                  <td>เงินเบิก / Cash Advance / ကြိုထုတ်ငွေ</td>
-                  <td class="num">{{ amount(cashAdvance(item)) }}</td>
-                </tr>
-                <tr>
-                  <td>รายการหักอื่น / Other / အခြား</td>
-                  <td class="num">{{ amount(otherDeduction()) }}</td>
-                </tr>
+                @if (absentAmount()) {
+                  <tr>
+                    <td>ขาดงาน / Absent / အလုပ်ပျက်</td>
+                    <td class="num">{{ amount(absentAmount()) }}</td>
+                  </tr>
+                }
+                @if (storeCredit()) {
+                  <tr>
+                    <td>เงินร้านค้า / Store Credit / ဆိုင်ကြွေး</td>
+                    <td class="num">{{ amount(storeCredit()) }}</td>
+                  </tr>
+                }
+                @if (cashAdvance(item)) {
+                  <tr>
+                    <td>เงินเบิก / Cash Advance / ကြိုထုတ်ငွေ</td>
+                    <td class="num">{{ amount(cashAdvance(item)) }}</td>
+                  </tr>
+                }
+                @for (row of extraDeductions(); track row.id) {
+                  <tr>
+                    <td>{{ adjustmentLabel(row) }}</td>
+                    <td class="num">{{ amount(row.amount) }}</td>
+                  </tr>
+                }
+                @if (!absentAmount() && !storeCredit() && !cashAdvance(item) && extraDeductions().length === 0) {
+                  <tr>
+                    <td colspan="2">-</td>
+                  </tr>
+                }
               </table>
             </td>
           </tr>

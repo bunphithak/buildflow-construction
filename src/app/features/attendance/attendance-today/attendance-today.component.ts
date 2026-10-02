@@ -318,7 +318,7 @@ export class AttendanceTodayComponent {
       const rows: TodayRow[] = [];
       for (const employeeId of employeeIds) {
         const employee = await this.employeeService.getEmployeeById(employeeId);
-        if (!employee) {
+        if (!employee || employee.status === 'RESIGNED') {
           continue;
         }
         const attendance = existingMap.get(employeeId);

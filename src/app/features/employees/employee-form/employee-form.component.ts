@@ -8,7 +8,7 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
-import { Employee, EmployeeWriteData, EMPLOYEE_DEPARTMENTS, EMPLOYEE_GENDERS, EMPLOYEE_NATIONALITIES, EMPLOYEE_POSITIONS, EmploymentType } from '../../../core/models';
+import { Employee, EmployeeStatus, EmployeeWriteData, EMPLOYEE_DEPARTMENTS, EMPLOYEE_GENDERS, EMPLOYEE_NATIONALITIES, EMPLOYEE_POSITIONS, EmploymentType } from '../../../core/models';
 import {
   EmployeeService,
   mapEmployeeError,
@@ -75,7 +75,7 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
     overtimeRate: this.fb.control<number | null>(null, minAmount),
     bankName: [''],
     bankAccount: [''],
-    status: this.fb.nonNullable.control<'ACTIVE' | 'INACTIVE'>('ACTIVE'),
+    status: this.fb.nonNullable.control<EmployeeStatus>('ACTIVE'),
     note: [''],
   });
 

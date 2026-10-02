@@ -73,7 +73,7 @@
 } @else {
   <section class="stats">
     <article class="card">
-      <span>พนักงาน</span>
+      <span>จะสร้าง</span>
       <strong>{{ totals().count }} คน</strong>
     </article>
     <article class="card">
@@ -94,6 +94,17 @@
       <table>
         <thead>
           <tr>
+            <th class="check">
+              <input
+                type="checkbox"
+                [checked]="allCreatableSelected()"
+                [indeterminate]="someCreatableSelected()"
+                [disabled]="creatableRows().length === 0"
+                (change)="onCheckAll($event)"
+                title="เลือกทั้งหมดที่ยังไม่มี Payroll"
+                aria-label="เลือกทั้งหมดที่ยังไม่มี Payroll"
+              />
+            </th>
             <th>รหัส</th>
             <th>พนักงาน</th>
             <th>ประเภท</th>
@@ -109,7 +120,16 @@
         </thead>
         <tbody>
           @for (row of rows(); track row.employee.id) {
-            <tr>
+            <tr [class.existing]="!!row.existing">
+              <td class="check">
+                <input
+                  type="checkbox"
+                  [checked]="isSelected(row.employee.id)"
+                  [disabled]="!!row.existing"
+                  (change)="onCheck(row.employee.id, $event)"
+                  [attr.aria-label]="row.existing ? 'มี Payroll แล้ว' : 'เลือกสร้าง Payroll'"
+                />
+              </td>
               <td>{{ row.employee.employeeCode }}</td>
               <td>{{ row.employee.firstName }} {{ row.employee.lastName }}</td>
               <td>{{ typeLabels[row.employee.employmentType] }}</td>
@@ -136,8 +156,8 @@
     </div>
   </section>
   <div class="actions">
-    <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="generate()">
-      {{ saving() ? 'กำลังสร้าง...' : 'สร้าง Payroll' }}
+    <button type="button" class="btn btn-primary" [disabled]="saving() || totals().count === 0" (click)="generate()">
+      {{ saving() ? 'กำลังสร้าง...' : 'สร้าง Payroll (' + totals().count + ' คน)' }}
     </button>
   </div>
 }

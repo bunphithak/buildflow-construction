@@ -131,6 +131,21 @@ export class PayslipViewComponent implements OnInit {
     return this.adjustments().filter((item) => item.type === 'INCOME');
   }
 
+  extraDeductions(): PayrollAdjustment[] {
+    return this.adjustments().filter(
+      (item) =>
+        item.type === 'DEDUCTION' &&
+        !STORE_CREDIT_CATEGORIES.has(item.category) &&
+        !ABSENT_CATEGORIES.has(item.category) &&
+        !ADVANCE_CATEGORIES.has(item.category),
+    );
+  }
+
+  adjustmentLabel(row: PayrollAdjustment): string {
+    const description = row.description?.trim();
+    return description ? `${row.category} · ${description}` : row.category;
+  }
+
   storeCredit(): number {
     return this.sumDeductions(STORE_CREDIT_CATEGORIES);
   }
@@ -141,18 +156,6 @@ export class PayslipViewComponent implements OnInit {
 
   cashAdvance(item: Payroll): number {
     return item.advanceDeduction + this.sumDeductions(ADVANCE_CATEGORIES);
-  }
-
-  otherDeduction(): number {
-    return this.adjustments()
-      .filter(
-        (item) =>
-          item.type === 'DEDUCTION' &&
-          !STORE_CREDIT_CATEGORIES.has(item.category) &&
-          !ABSENT_CATEGORIES.has(item.category) &&
-          !ADVANCE_CATEGORIES.has(item.category),
-      )
-      .reduce((sum, item) => sum + item.amount, 0);
   }
 
   displayNet(item: Payroll): number {

@@ -114,7 +114,7 @@ export class StatusBadgeComponent {
           return 'warning';
       }
     }
-    if (this.status === 'INACTIVE' || this.status === 'REMOVED' || this.status === 'CLOSED') {
+    if (this.status === 'INACTIVE' || this.status === 'RESIGNED' || this.status === 'REMOVED' || this.status === 'CLOSED') {
       return 'muted';
     }
     if (this.status === 'CANCELLED') {

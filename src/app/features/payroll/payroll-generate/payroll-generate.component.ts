@@ -56,12 +56,20 @@ export class PayrollGenerateComponent implements OnInit {
   readonly customEnd = signal(toDateInputValue(new Date()));
   readonly payDate = signal(toDateInputValue(this.currentPayDate()));
   readonly jobId = signal('');
+  readonly selected = signal(new Set<string>());
   readonly typeLabels = EMPLOYMENT_TYPE_LABELS;
   readonly years = Array.from({ length: 6 }, (_, index) => new Date().getFullYear() - 2 + index);
   readonly months = Array.from({ length: 12 }, (_, index) => index + 1);
 
+  readonly creatableRows = computed(() => this.rows().filter((row) => !row.existing));
+
+  readonly selectedRows = computed(() => {
+    const selected = this.selected();
+    return this.creatableRows().filter((row) => selected.has(row.employee.id));
+  });
+
   readonly totals = computed(() => {
-    const rows = this.rows();
+    const rows = this.selectedRows();
     const income = roundMoney(rows.reduce((sum, row) => sum + row.basePay + row.overtimePay, 0));
     const deduction = roundMoney(rows.reduce((sum, row) => sum + row.advance, 0));
     return {
@@ -70,6 +78,18 @@ export class PayrollGenerateComponent implements OnInit {
       deduction,
       net: roundMoney(rows.reduce((sum, row) => sum + row.netPay, 0)),
     };
+  });
+
+  readonly allCreatableSelected = computed(() => {
+    const rows = this.creatableRows();
+    const selected = this.selected();
+    return rows.length > 0 && rows.every((row) => selected.has(row.employee.id));
+  });
+
+  readonly someCreatableSelected = computed(() => {
+    const rows = this.creatableRows();
+    const selected = this.selected();
+    return rows.some((row) => selected.has(row.employee.id)) && !this.allCreatableSelected();
   });
 
   readonly jobOptions = computed(() =>
@@ -152,6 +172,7 @@ export class PayrollGenerateComponent implements OnInit {
         this.toast.error('วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด');
         if (request === this.previewRequest) {
           this.rows.set([]);
+          this.selected.set(new Set());
         }
         return;
       }
@@ -160,6 +181,7 @@ export class PayrollGenerateComponent implements OnInit {
         return;
       }
       this.rows.set(previews);
+      this.selected.set(new Set(previews.filter((row) => !row.existing).map((row) => row.employee.id)));
     } catch (error) {
       console.error(error);
       this.toast.error('ไม่สามารถโหลดตัวอย่าง Payroll ได้');
@@ -170,12 +192,36 @@ export class PayrollGenerateComponent implements OnInit {
     }
   }
 
+  isSelected(employeeId: string): boolean {
+    return this.selected().has(employeeId);
+  }
+
+  onCheck(employeeId: string, event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    const next = new Set(this.selected());
+    if (checked) {
+      next.add(employeeId);
+    } else {
+      next.delete(employeeId);
+    }
+    this.selected.set(next);
+  }
+
+  onCheckAll(event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.selected.set(checked ? new Set(this.creatableRows().map((row) => row.employee.id)) : new Set());
+  }
+
   async generate(): Promise<void> {
+    const employeeIds = this.selectedRows().map((row) => row.employee.id);
+    if (employeeIds.length === 0) {
+      this.toast.warning('เลือกพนักงานที่ต้องการสร้าง Payroll ก่อน');
+      return;
+    }
     this.saving.set(true);
     try {
       const { start, end } = this.range();
       const jobId = this.jobId() || undefined;
-      const employeeIds = jobId ? this.rows().map((row) => row.employee.id) : undefined;
       const result = await this.payrollService.generateForPeriod(
         this.year(),
         this.month(),

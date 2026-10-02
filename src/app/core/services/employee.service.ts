@@ -259,7 +259,8 @@ export class EmployeeService {
 
   private mapEmployee(row: DocumentData): Employee {
     const employmentType: EmploymentType = row['employmentType'] === 'MONTHLY' ? 'MONTHLY' : 'DAILY';
-    const status: EmployeeStatus = row['status'] === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    const status: EmployeeStatus =
+      row['status'] === 'INACTIVE' || row['status'] === 'RESIGNED' ? row['status'] : 'ACTIVE';
     const id = String(row['id'] ?? row['employeeId'] ?? '');
 
     return {

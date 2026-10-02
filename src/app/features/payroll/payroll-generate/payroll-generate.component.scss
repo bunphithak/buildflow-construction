@@ -33,12 +33,19 @@ label {
   font-weight: 600;
 }
 
-input,
+input:not([type='checkbox']),
 select {
   border: 1px solid var(--color-border);
   border-radius: 0.75rem;
   padding: 0.65rem 0.75rem;
   font: inherit;
+}
+
+input[type='checkbox'] {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--color-sidebar);
+  cursor: pointer;
 }
 
 .hint {
@@ -77,6 +84,16 @@ table {
   .num {
     text-align: right;
     font-variant-numeric: tabular-nums;
+  }
+
+  .check {
+    width: 2.4rem;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  .existing {
+    color: var(--color-muted);
   }
 }
 

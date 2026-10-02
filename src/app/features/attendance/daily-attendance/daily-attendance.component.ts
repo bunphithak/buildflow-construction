@@ -310,7 +310,7 @@ export class DailyAttendanceComponent {
       const rows: DailyRow[] = [];
       for (const employeeId of employeeIds) {
         const employee = this.employeeService.employees().find((item) => item.id === employeeId);
-        if (!employee) {
+        if (!employee || employee.status === 'RESIGNED') {
           continue;
         }
         const attendance = existingMap.get(employeeId);
