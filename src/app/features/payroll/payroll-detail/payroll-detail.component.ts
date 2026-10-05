@@ -19,7 +19,7 @@ import { EmployeeService } from '../../../core/services/employee.service';
 import { JobService } from '../../../core/services/job.service';
 import { PayrollService, mapPayrollError } from '../../../core/services/payroll.service';
 import { formatBaht } from '../../../core/utils/form.util';
-import { payrollDisplayLabel, snapshotEmployeeRates, summarizeAttendanceForPayroll } from '../../../core/utils/payroll.util';
+import { payrollDisplayLabel, payrollListQuery, snapshotEmployeeRates, summarizeAttendanceForPayroll } from '../../../core/utils/payroll.util';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
@@ -69,6 +69,15 @@ export class PayrollDetailComponent implements OnInit {
   readonly incomeCategories = INCOME_CATEGORIES;
   readonly deductionCategories = DEDUCTION_CATEGORIES;
   readonly isAdmin = computed(() => this.authService.hasRole(['ADMIN']));
+
+  listQuery(): Record<string, string> {
+    const year = Number(this.route.snapshot.queryParamMap.get('year'));
+    const month = Number(this.route.snapshot.queryParamMap.get('month'));
+    if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+      return {};
+    }
+    return payrollListQuery(year, month, this.route.snapshot.queryParamMap.get('job') ?? '');
+  }
   readonly locked = computed(() => {
     const status = this.payroll()?.status;
     return !status || this.payrollService.isLocked(status);

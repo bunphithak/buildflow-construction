@@ -1,14 +1,14 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
-import { Attendance, Employee, EMPLOYMENT_TYPE_LABELS, isWorkedAttendanceStatus, Payroll } from '../../../core/models';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Attendance, Employee, EMPLOYMENT_TYPE_LABELS, Payroll } from '../../../core/models';
 import { AttendanceService } from '../../../core/services/attendance.service';
 import { EmployeeService } from '../../../core/services/employee.service';
 import { JobService } from '../../../core/services/job.service';
 import { PayrollService, mapPayrollError } from '../../../core/services/payroll.service';
 import { formatBaht, formatAmount } from '../../../core/utils/form.util';
-import { formatPayrollPeriod, monthRangeBangkok } from '../../../core/utils/datetime.util';
-import { payrollDisplayLabel } from '../../../core/utils/payroll.util';
+import { formatPayrollPeriod, monthRangeBangkok, roundMoney, bangkokDateKey } from '../../../core/utils/datetime.util';
+import { hasPayableWork, payrollDisplayLabel, payrollListQuery, summarizeAttendanceForPayroll } from '../../../core/utils/payroll.util';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
@@ -37,6 +37,8 @@ export class PayrollListComponent implements OnInit {
   private readonly attendanceService = inject(AttendanceService);
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   readonly loading = signal(true);
   readonly payrolls = signal<Payroll[]>([]);
@@ -53,41 +55,50 @@ export class PayrollListComponent implements OnInit {
     [...this.jobService.jobs()].sort((a, b) => a.jobCode.localeCompare(b.jobCode, 'th', { numeric: true })),
   );
 
-  readonly visiblePayrolls = computed(() => {
+  readonly visibleRows = computed(() => {
     const jobId = this.jobId();
-    const rows = this.payrolls();
-    if (!jobId) {
-      return rows;
-    }
-    return rows.filter((payroll) => this.workedJobInPayroll(payroll, jobId));
+    return this.payrolls()
+      .map((payroll) => this.toDisplayRow(payroll, jobId || undefined))
+      .filter((row) => row.visible);
   });
 
   readonly periodLabel = computed(() => formatPayrollPeriod(this.year(), this.month()));
   readonly summary = computed(() => {
-    const rows = this.visiblePayrolls().filter((item) => item.status !== 'CANCELLED');
+    const rows = this.visibleRows().filter((row) => row.payroll.status !== 'CANCELLED');
     return {
       count: rows.length,
-      base: rows.reduce((sum, item) => sum + item.basePay, 0),
-      ot: rows.reduce((sum, item) => sum + item.overtimePay, 0),
-      extra: rows.reduce((sum, item) => sum + item.additionalIncome + item.bonus, 0),
-      deduction: rows.reduce((sum, item) => sum + item.totalDeduction, 0),
-      net: rows.reduce((sum, item) => sum + item.netPay, 0),
+      base: roundMoney(rows.reduce((sum, row) => sum + row.base, 0)),
+      ot: roundMoney(rows.reduce((sum, row) => sum + row.ot, 0)),
+      extra: roundMoney(rows.reduce((sum, row) => sum + row.extra, 0)),
+      deduction: roundMoney(rows.reduce((sum, row) => sum + row.deduction, 0)),
+      net: roundMoney(rows.reduce((sum, row) => sum + row.net, 0)),
     };
   });
 
+  readonly listQuery = computed(() => payrollListQuery(this.year(), this.month(), this.jobId()));
+
   async ngOnInit(): Promise<void> {
+    this.applyQuery(this.route.snapshot.queryParamMap);
     await this.reload();
+    await this.syncQuery();
   }
 
   async reload(): Promise<void> {
     this.loading.set(true);
     this.selected.set(new Set());
     try {
-      const { start, end } = monthRangeBangkok(this.year(), this.month());
-      const [rows, attendances] = await Promise.all([
-        this.payrollService.getPayrollsByPeriod(this.year(), this.month()),
-        this.attendanceService.getAttendancesByDateRange(start, end),
-      ]);
+      const rows = await this.payrollService.getPayrollsByPeriod(this.year(), this.month());
+      let { start, end } = monthRangeBangkok(this.year(), this.month());
+      for (const payroll of rows) {
+        const range = this.payrollService.payrollDateRange(payroll);
+        if (range.start.getTime() < start.getTime()) {
+          start = range.start;
+        }
+        if (range.end.getTime() > end.getTime()) {
+          end = range.end;
+        }
+      }
+      const attendances = await this.attendanceService.getAttendancesByDateRange(start, end);
       this.payrolls.set(rows);
       this.attendances.set(attendances);
     } catch (error) {
@@ -123,21 +134,114 @@ export class PayrollListComponent implements OnInit {
     return payrollDisplayLabel(item);
   }
 
+  setMonth(value: number): void {
+    this.month.set(value);
+    void this.onFilterPeriodChange();
+  }
+
+  setYear(value: number): void {
+    this.year.set(value);
+    void this.onFilterPeriodChange();
+  }
+
   setJob(value: string): void {
     this.jobId.set(value);
     this.selected.set(new Set());
+    void this.syncQuery();
   }
 
-  private workedJobInPayroll(payroll: Payroll, jobId: string): boolean {
-    const { start, end } = this.payrollService.payrollDateRange(payroll);
-    const startMs = start.getTime();
-    const endMs = end.getTime();
-    return this.attendances().some((item) => {
-      if (item.employeeId !== payroll.employeeId || item.jobId !== jobId || !isWorkedAttendanceStatus(item.status)) {
-        return false;
-      }
-      const time = item.workDate.toDate().getTime();
-      return time >= startMs && time <= endMs;
+  private toDisplayRow(payroll: Payroll, jobId?: string): {
+    payroll: Payroll;
+    visible: boolean;
+    workDays: number;
+    halfDays: number;
+    overtimeHours: number;
+    base: number;
+    ot: number;
+    extra: number;
+    deduction: number;
+    net: number;
+    income: number;
+  } {
+    const extra = payroll.additionalIncome + payroll.bonus;
+    if (!jobId) {
+      return {
+        payroll,
+        visible: true,
+        workDays: payroll.totalWorkDays,
+        halfDays: payroll.totalHalfDays,
+        overtimeHours: payroll.totalOvertimeHours,
+        base: payroll.basePay,
+        ot: payroll.overtimePay,
+        extra,
+        deduction: payroll.totalDeduction,
+        net: payroll.netPay,
+        income: payroll.totalIncome,
+      };
+    }
+    const range = this.payrollService.payrollDateRange(payroll);
+    const jobRows = this.attendances().filter(
+      (item) =>
+        item.employeeId === payroll.employeeId &&
+        item.jobId === jobId &&
+        this.inRange(item, range.start, range.end),
+    );
+    const summary = summarizeAttendanceForPayroll(
+      jobRows,
+      {
+        employmentTypeSnapshot: payroll.employmentTypeSnapshot,
+        dailyRateSnapshot: payroll.dailyRateSnapshot,
+        monthlySalarySnapshot: payroll.monthlySalarySnapshot,
+        overtimeRateSnapshot: payroll.overtimeRateSnapshot,
+      },
+      range,
+    );
+    const base = summary.basePay;
+    const ot = summary.overtimePay;
+    const income = roundMoney(base + ot + extra);
+    const deduction = payroll.totalDeduction;
+    return {
+      payroll,
+      visible: hasPayableWork(summary),
+      workDays: summary.totalWorkDays,
+      halfDays: summary.totalHalfDays,
+      overtimeHours: summary.totalOvertimeHours,
+      base,
+      ot,
+      extra,
+      deduction,
+      net: roundMoney(income - deduction),
+      income,
+    };
+  }
+
+  private inRange(item: Attendance, start: Date, end: Date): boolean {
+    const key = bangkokDateKey(item.workDate.toDate());
+    return key >= bangkokDateKey(start) && key <= bangkokDateKey(end);
+  }
+
+  private applyQuery(params: { get(name: string): string | null }): void {
+    const year = Number(params.get('year'));
+    const month = Number(params.get('month'));
+    if (Number.isInteger(year) && year >= 2000 && year <= 2100) {
+      this.year.set(year);
+    }
+    if (Number.isInteger(month) && month >= 1 && month <= 12) {
+      this.month.set(month);
+    }
+    this.jobId.set(params.get('job') ?? '');
+  }
+
+  private async onFilterPeriodChange(): Promise<void> {
+    await this.syncQuery();
+    await this.reload();
+  }
+
+  private async syncQuery(): Promise<void> {
+    await this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: this.listQuery(),
+      replaceUrl: true,
     });
   }
 
@@ -156,7 +260,7 @@ export class PayrollListComponent implements OnInit {
   }
 
   toggleAll(checked: boolean): void {
-    this.selected.set(checked ? new Set(this.visiblePayrolls().map((item) => item.id)) : new Set());
+    this.selected.set(checked ? new Set(this.visibleRows().map((row) => row.payroll.id)) : new Set());
   }
 
   isChecked(id: string): boolean {

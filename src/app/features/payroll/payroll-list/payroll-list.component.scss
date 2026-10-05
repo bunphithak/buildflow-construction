@@ -51,6 +51,11 @@ select {
   margin-bottom: 1rem;
 }
 
+.hint {
+  color: var(--color-muted);
+  margin: 0 0 1rem;
+}
+
 .table-wrap {
   overflow-x: auto;
 }

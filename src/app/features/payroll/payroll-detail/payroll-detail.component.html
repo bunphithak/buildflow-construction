@@ -8,8 +8,8 @@
       <app-page-header [title]="fullName(employee)" [subtitle]="employee.employeeCode + ' · ' + periodLabel(item)">
         <div class="header-actions no-print">
           <app-status-badge kind="payroll" [status]="item.status" />
-          <a class="btn btn-ghost" routerLink="/payroll">กลับ</a>
-          <a class="btn btn-ghost" [routerLink]="['/payroll', item.id, 'payslip']">สลิป</a>
+          <a class="btn btn-ghost" routerLink="/payroll" [queryParams]="listQuery()">กลับ</a>
+          <a class="btn btn-ghost" [routerLink]="['/payroll', item.id, 'payslip']" [queryParams]="listQuery()">สลิป</a>
         </div>
       </app-page-header>
 

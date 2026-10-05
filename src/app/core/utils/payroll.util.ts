@@ -172,3 +172,14 @@ export function payrollDisplayLabel(item: Payroll): string {
   }
   return formatPayrollPeriod(item.year, item.month);
 }
+
+export function payrollListQuery(year: number, month: number, jobId = ''): Record<string, string> {
+  const query: Record<string, string> = {
+    year: String(year),
+    month: String(month),
+  };
+  if (jobId) {
+    query['job'] = jobId;
+  }
+  return query;
+}

@@ -7,7 +7,7 @@ import { EmployeeService } from '../../../core/services/employee.service';
 import { PayrollService } from '../../../core/services/payroll.service';
 import { formatAmount } from '../../../core/utils/form.util';
 import { formatThaiDateShort } from '../../../core/utils/datetime.util';
-import { payrollDisplayLabel } from '../../../core/utils/payroll.util';
+import { payrollDisplayLabel, payrollListQuery } from '../../../core/utils/payroll.util';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { ToastService } from '../../../shared/services/toast.service';
@@ -65,6 +65,18 @@ export class PayslipViewComponent implements OnInit {
       return '/payslips';
     }
     return '/payroll';
+  }
+
+  backQuery(): Record<string, string> | null {
+    if (this.route.snapshot.queryParamMap.get('from') === 'payslips') {
+      return null;
+    }
+    const year = Number(this.route.snapshot.queryParamMap.get('year'));
+    const month = Number(this.route.snapshot.queryParamMap.get('month'));
+    if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+      return null;
+    }
+    return payrollListQuery(year, month, this.route.snapshot.queryParamMap.get('job') ?? '');
   }
 
   logoSrc(): string {
