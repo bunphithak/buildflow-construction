@@ -11,14 +11,14 @@
       <h2>ข้อมูลงาน</h2>
       <div class="grid">
         <label>
-          รหัส Job *
+          <span>รหัส Job <span class="req">*</span></span>
           <input type="text" formControlName="jobCode" placeholder="JOB-2569-001" />
           @if (hasError('jobCode', 'required')) {
             <small>กรุณากรอกรหัส Job</small>
           }
         </label>
         <label>
-          ชื่องาน *
+          <span>ชื่องาน <span class="req">*</span></span>
           <input type="text" formControlName="jobName" />
           @if (hasError('jobName', 'required')) {
             <small>กรุณากรอกชื่องาน</small>
@@ -35,7 +35,7 @@
       <h2>ข้อมูลลูกค้า</h2>
       <div class="grid">
         <label>
-          ชื่อลูกค้า *
+          <span>ชื่อลูกค้า <span class="req">*</span></span>
           <input type="text" formControlName="customerName" />
           @if (hasError('customerName', 'required')) {
             <small>กรุณากรอกชื่อลูกค้า</small>
@@ -56,7 +56,7 @@
       <h2>ข้อมูลราคา</h2>
       <div class="grid">
         <label>
-          มูลค่างาน *
+          <span>มูลค่างาน <span class="req">*</span></span>
           <input type="number" min="0" step="0.01" formControlName="contractValue" />
           <p class="hint">{{ contractHint() }}</p>
           @if (hasError('contractValue', 'required')) {
@@ -81,7 +81,7 @@
       <h2>ระยะเวลา</h2>
       <div class="grid">
         <label>
-          วันที่เริ่มงาน *
+          <span>วันที่เริ่มงาน <span class="req">*</span></span>
           <input type="date" formControlName="startDate" />
           @if (hasError('startDate', 'required')) {
             <small>กรุณาระบุวันที่เริ่มงาน</small>

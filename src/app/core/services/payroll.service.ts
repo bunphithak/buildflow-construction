@@ -426,12 +426,14 @@ export class PayrollService {
         if (!advanceSnap.exists()) {
           continue;
         }
-        if (advanceSnap.data()['status'] !== 'PENDING') {
-          throw new Error('ADVANCE_LOCKED');
+        const status = advanceSnap.data()['status'];
+        if (status === 'PENDING' || (status === 'DEDUCTED' && advanceSnap.data()['payrollId'] === id)) {
+          continue;
         }
+        throw new Error('ADVANCE_LOCKED');
       }
       for (const advanceSnap of advanceSnaps) {
-        if (!advanceSnap.exists()) {
+        if (!advanceSnap.exists() || advanceSnap.data()['status'] !== 'PENDING') {
           continue;
         }
         tx.update(advanceSnap.ref, {
@@ -594,26 +596,21 @@ export class PayrollService {
   }
 
   async bulkApprove(ids: string[]): Promise<string[]> {
-    const payrolls = await Promise.all(ids.map((id) => this.getPayrollById(id)));
     const errors: string[] = [];
-    payrolls.forEach((item, index) => {
-      if (!item) {
-        errors.push(`${ids[index]}: ไม่พบรายการ`);
-        return;
-      }
-      if (item.status === 'APPROVED' || item.status === 'PAID') {
-        errors.push(`${item.id}: อนุมัติหรือจ่ายแล้ว`);
-        return;
-      }
-      if (item.status === 'CANCELLED') {
-        errors.push(`${item.id}: ถูกยกเลิกแล้ว`);
-      }
-    });
-    if (errors.length > 0) {
-      return errors;
-    }
     for (const id of ids) {
       try {
+        const item = await this.getPayrollById(id);
+        if (!item) {
+          errors.push(`${id}: ไม่พบรายการ`);
+          continue;
+        }
+        if (item.status === 'APPROVED' || item.status === 'PAID') {
+          continue;
+        }
+        if (item.status === 'CANCELLED') {
+          errors.push(`${id}: ถูกยกเลิกแล้ว`);
+          continue;
+        }
         await this.approve(id);
       } catch (error) {
         errors.push(this.describe(id, error));

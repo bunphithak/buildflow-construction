@@ -47,6 +47,7 @@ export class PayrollListComponent implements OnInit {
   readonly month = signal(new Date().getMonth() + 1);
   readonly jobId = signal('');
   readonly selected = signal<Set<string>>(new Set());
+  readonly actingId = signal<string | null>(null);
   readonly typeLabels = EMPLOYMENT_TYPE_LABELS;
   readonly years = Array.from({ length: 6 }, (_, index) => new Date().getFullYear() - 2 + index);
   readonly months = Array.from({ length: 12 }, (_, index) => index + 1);
@@ -301,10 +302,14 @@ export class PayrollListComponent implements OnInit {
 
   async bulkApprove(): Promise<void> {
     const ids = [...this.selected()];
-    if (ids.length === 0) {
+    const approvable = this.payrolls().filter(
+      (item) => ids.includes(item.id) && (item.status === 'DRAFT' || item.status === 'CALCULATED'),
+    );
+    if (approvable.length === 0) {
+      this.toast.warning('รายการที่เลือกอนุมัติ จ่ายแล้ว หรือยกเลิกแล้ว ไม่สามารถอนุมัติซ้ำได้');
       return;
     }
-    const negatives = this.payrolls().filter((item) => ids.includes(item.id) && item.netPay < 0);
+    const negatives = approvable.filter((item) => item.netPay < 0);
     const extra =
       negatives.length === 0
         ? ''
@@ -312,21 +317,76 @@ export class PayrollListComponent implements OnInit {
           negatives
             .map((item) => `${this.employeeName(item.employeeId)} ${this.money(item.netPay)}`)
             .join('\n');
+    const skipped = ids.length - approvable.length;
+    const skipNote = skipped > 0 ? `\n\nข้าม ${skipped} รายการที่อนุมัติหรือจ่ายแล้ว` : '';
     const confirmed = await this.confirmDialog.confirm({
       title: negatives.length > 0 ? 'อนุมัติและยกยอดติดลบ' : 'อนุมัติหลายรายการ',
-      message: `ยืนยันอนุมัติ Payroll ${ids.length} รายการของงวด ${this.periodLabel()}?${extra}`,
+      message: `ยืนยันอนุมัติ Payroll ${approvable.length} รายการของงวด ${this.periodLabel()}?${extra}${skipNote}`,
       confirmLabel: negatives.length > 0 ? 'อนุมัติและยกยอด' : 'อนุมัติ',
     });
     if (!confirmed) {
       return;
     }
-    const errors = await this.payrollService.bulkApprove(ids);
-    if (errors.length > 0) {
-      this.toast.error(`มีรายการที่ต้องแก้:\n${errors.join('\n')}`);
-    } else {
-      this.toast.success('อนุมัติรายการที่เลือกแล้ว');
+    try {
+      const errors = await this.payrollService.bulkApprove(approvable.map((item) => item.id));
+      if (errors.length > 0) {
+        this.toast.error(`มีรายการที่ต้องแก้:\n${errors.join('\n')}`);
+      } else {
+        this.toast.success(`อนุมัติแล้ว ${approvable.length} รายการ`);
+      }
+    } catch (error) {
+      this.toast.error(mapPayrollError(error));
     }
     await this.reload();
+  }
+
+  async approveOne(payroll: Payroll): Promise<void> {
+    const negative = payroll.netPay < 0;
+    const confirmed = negative
+      ? await this.confirmDialog.confirm({
+          title: 'ยอดสุทธิติดลบ',
+          message: `ยอดสุทธิของ ${this.employeeName(payroll.employeeId)} งวด ${this.periodRange(payroll)} คือ ${this.money(payroll.netPay)} ต้องการอนุมัติและยกยอดติดลบ ${this.money(Math.abs(payroll.netPay))} ไปรอหักรอบถัดไปหรือไม่? งวดนี้จะจ่าย 0 บาท`,
+          confirmLabel: 'อนุมัติและยกยอด',
+        })
+      : await this.confirmDialog.confirm({
+          title: 'อนุมัติ Payroll',
+          message: `ยืนยันการอนุมัติ Payroll ของ ${this.employeeName(payroll.employeeId)} งวด ${this.periodRange(payroll)}?`,
+          confirmLabel: 'อนุมัติ',
+        });
+    if (!confirmed) {
+      return;
+    }
+    this.actingId.set(payroll.id);
+    try {
+      await this.payrollService.approve(payroll.id);
+      this.toast.success(negative ? 'อนุมัติแล้ว และยกยอดติดลบไปรอหักรอบถัดไป' : 'อนุมัติ Payroll แล้ว');
+      await this.reload();
+    } catch (error) {
+      this.toast.error(mapPayrollError(error));
+    } finally {
+      this.actingId.set(null);
+    }
+  }
+
+  async markPaidOne(payroll: Payroll): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'บันทึกว่าจ่ายแล้ว',
+      message: `ยืนยันว่าจ่ายเงินให้ ${this.employeeName(payroll.employeeId)} งวด ${this.periodRange(payroll)} แล้ว? เมื่อจ่ายแล้วจะไม่สามารถแก้ไข Payroll นี้ได้โดยตรง`,
+      confirmLabel: 'จ่ายแล้ว',
+    });
+    if (!confirmed) {
+      return;
+    }
+    this.actingId.set(payroll.id);
+    try {
+      await this.payrollService.markPaid(payroll.id);
+      this.toast.success('บันทึกว่าจ่ายแล้ว');
+      await this.reload();
+    } catch (error) {
+      this.toast.error(mapPayrollError(error));
+    } finally {
+      this.actingId.set(null);
+    }
   }
 
   protected readonly mapPayrollError = mapPayrollError;

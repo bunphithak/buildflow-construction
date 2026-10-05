@@ -4,7 +4,7 @@
 
 <form class="card grid" [formGroup]="form" (ngSubmit)="save()">
   <label>
-    ชื่อกิจการ *
+    <span>ชื่อกิจการ <span class="req">*</span></span>
     <input type="text" formControlName="companyName" />
   </label>
   <label>

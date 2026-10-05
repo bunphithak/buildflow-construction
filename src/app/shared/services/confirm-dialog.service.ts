@@ -27,8 +27,15 @@ export class ConfirmDialogService {
   }
 
   close(confirmed: boolean): void {
-    this.resolver?.(confirmed);
+    if (!this.resolver) {
+      return;
+    }
+    const resolve = this.resolver;
     this.resolver = null;
-    this.options.set(null);
+    // Unmount after the originating click finishes so it cannot hit the page underneath.
+    window.setTimeout(() => {
+      this.options.set(null);
+      resolve(confirmed);
+    }, 0);
   }
 }

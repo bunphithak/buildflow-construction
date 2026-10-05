@@ -1,6 +1,5 @@
 .header-actions,
-.bulk,
-.actions {
+.bulk {
   display: flex;
   gap: 0.6rem;
   flex-wrap: wrap;
@@ -61,15 +60,27 @@ select {
 }
 
 table {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
-  min-width: 1100px;
 
   th,
   td {
     text-align: left;
     padding: 0.75rem 0.5rem;
     border-bottom: 1px solid var(--color-border);
+  }
+
+  th.actions,
+  td.actions {
+    position: sticky;
+    right: 0;
+    background: var(--color-card);
+    box-shadow: -6px 0 8px -6px rgba(15, 23, 42, 0.18);
+  }
+
+  .icon-actions {
+    flex-wrap: nowrap;
   }
 }
 

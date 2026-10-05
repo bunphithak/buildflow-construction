@@ -15,7 +15,7 @@
       <h2>งานและงวด</h2>
       <div class="grid">
         <label class="span-2">
-          Job *
+          <span>Job <span class="req">*</span></span>
           <select formControlName="jobId">
             <option value="">เลือกงานก่อสร้าง</option>
             @for (job of selectableJobs(); track job.id) {
@@ -27,14 +27,14 @@
           }
         </label>
         <label>
-          วันที่ *
+          <span>วันที่ <span class="req">*</span></span>
           <input type="date" formControlName="revenueDate" />
           @if (hasError('revenueDate', 'required')) {
             <small>กรุณาเลือกวันที่</small>
           }
         </label>
         <label>
-          ประเภท *
+          <span>ประเภท <span class="req">*</span></span>
           <select formControlName="type">
             @for (type of types; track type) {
               <option [value]="type">{{ typeLabels[type] }}</option>
@@ -42,7 +42,7 @@
           </select>
         </label>
         <label>
-          สถานะ *
+          <span>สถานะ <span class="req">*</span></span>
           <select formControlName="status">
             @for (status of statuses; track status) {
               <option [value]="status">{{ statusLabels[status] }}</option>
@@ -50,14 +50,14 @@
           </select>
         </label>
         <label class="span-2">
-          รายละเอียดงวด *
+          <span>รายละเอียดงวด <span class="req">*</span></span>
           <input type="text" formControlName="description" placeholder="เช่น มัดจำ 30%, งวดโครงสร้าง, ต่อเติมห้องครัว" />
           @if (hasError('description', 'required')) {
             <small>กรุณากรอกรายละเอียด</small>
           }
         </label>
         <label>
-          ยอดเงิน *
+          <span>ยอดเงิน <span class="req">*</span></span>
           <input type="number" min="0.01" step="0.01" inputmode="decimal" formControlName="amount" />
           @if (hasError('amount', 'required') || hasError('amount', 'min')) {
             <small>ยอดเงินต้องมากกว่า 0</small>

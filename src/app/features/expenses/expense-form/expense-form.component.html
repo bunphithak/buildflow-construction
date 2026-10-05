@@ -15,7 +15,7 @@
       <h2>ข้อมูลงาน</h2>
       <div class="grid">
         <label class="span-2">
-          Job *
+          <span>Job <span class="req">*</span></span>
           <select formControlName="jobId">
             <option value="">เลือกงานก่อสร้าง</option>
             @for (job of selectableJobs(); track job.id) {
@@ -33,14 +33,14 @@
       <h2>ข้อมูลค่าใช้จ่าย</h2>
       <div class="grid">
         <label>
-          วันที่ *
+          <span>วันที่ <span class="req">*</span></span>
           <input type="date" formControlName="expenseDate" />
           @if (hasError('expenseDate', 'required')) {
             <small>กรุณาเลือกวันที่</small>
           }
         </label>
         <label>
-          หมวดค่าใช้จ่าย *
+          <span>หมวดค่าใช้จ่าย <span class="req">*</span></span>
           <select formControlName="categoryId">
             <option value="">เลือกหมวด</option>
             @for (category of categories(); track category.id) {
@@ -52,7 +52,7 @@
           }
         </label>
         <label class="span-2">
-          รายละเอียด *
+          <span>รายละเอียด <span class="req">*</span></span>
           <input type="text" formControlName="description" placeholder="เช่น เหล็ก DB12, น้ำมันดีเซล, ค่าอาหารคนงาน" />
           @if (hasError('description', 'required')) {
             <small>กรุณากรอกรายละเอียด</small>
@@ -83,7 +83,7 @@
           <input type="number" min="0" step="0.01" inputmode="decimal" formControlName="unitPrice" />
         </label>
         <label>
-          ยอดรวม *
+          <span>ยอดรวม <span class="req">*</span></span>
           <input
             type="number"
             min="0.01"

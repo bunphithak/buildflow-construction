@@ -31,21 +31,21 @@
       <h2>ข้อมูลส่วนตัว</h2>
       <div class="grid">
         <label>
-          รหัสพนักงาน *
+          <span>รหัสพนักงาน <span class="req">*</span></span>
           <input type="text" formControlName="employeeCode" placeholder="EMP-001" />
           @if (hasError('employeeCode', 'required')) {
             <small>กรุณากรอกรหัสพนักงาน</small>
           }
         </label>
         <label>
-          ชื่อ *
+          <span>ชื่อ <span class="req">*</span></span>
           <input type="text" formControlName="firstName" />
           @if (hasError('firstName', 'required')) {
             <small>กรุณากรอกชื่อ</small>
           }
         </label>
         <label>
-          นามสกุล *
+          <span>นามสกุล <span class="req">*</span></span>
           <input type="text" formControlName="lastName" />
           @if (hasError('lastName', 'required')) {
             <small>กรุณากรอกนามสกุล</small>
@@ -88,7 +88,7 @@
       <h2>ข้อมูลการทำงาน</h2>
       <div class="grid">
         <label>
-          ตำแหน่ง *
+          <span>ตำแหน่ง <span class="req">*</span></span>
           <select formControlName="position">
             <option value="" disabled>เลือกตำแหน่ง</option>
             @if (customPosition(); as custom) {
@@ -115,14 +115,14 @@
           </select>
         </label>
         <label>
-          วันที่เริ่มงาน *
+          <span>วันที่เริ่มงาน <span class="req">*</span></span>
           <input type="date" formControlName="startDate" />
           @if (hasError('startDate', 'required')) {
             <small>กรุณาระบุวันที่เริ่มงาน</small>
           }
         </label>
         <label>
-          ประเภทการจ้าง *
+          <span>ประเภทการจ้าง <span class="req">*</span></span>
           <select formControlName="employmentType">
             <option value="DAILY">รายวัน</option>
             <option value="MONTHLY">รายเดือน</option>
@@ -131,7 +131,7 @@
 
         @if (employmentType === 'DAILY') {
           <label>
-            ค่าแรงต่อวัน *
+            <span>ค่าแรงต่อวัน <span class="req">*</span></span>
             <input type="number" min="0" step="0.01" formControlName="dailyRate" />
             @if (hasError('dailyRate', 'required')) {
               <small>กรุณาระบุค่าแรงต่อวัน</small>
@@ -142,7 +142,7 @@
           </label>
         } @else {
           <label>
-            เงินเดือนต่อเดือน *
+            <span>เงินเดือนต่อเดือน <span class="req">*</span></span>
             <input type="number" min="0" step="0.01" formControlName="monthlySalary" />
             @if (hasError('monthlySalary', 'required')) {
               <small>กรุณาระบุเงินเดือนต่อเดือน</small>

@@ -28,7 +28,8 @@ export class ToastService {
   private show(text: string, type: ToastMessage['type']): void {
     const id = this.nextId++;
     this.messages.update((items) => [...items, { id, text, type }]);
-    window.setTimeout(() => this.dismiss(id), 3500);
+    const duration = type === 'error' ? 8000 : 3500;
+    window.setTimeout(() => this.dismiss(id), duration);
   }
 
   dismiss(id: number): void {

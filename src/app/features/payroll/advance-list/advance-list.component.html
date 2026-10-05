@@ -6,7 +6,7 @@
   <h2>เพิ่มเงินเบิก</h2>
   <form class="grid" [formGroup]="form" (ngSubmit)="save()">
     <label>
-      พนักงาน *
+      <span>พนักงาน <span class="req">*</span></span>
       <select formControlName="employeeId">
         <option value="">เลือกพนักงาน</option>
         @for (item of employees(); track item.id) {
@@ -15,11 +15,11 @@
       </select>
     </label>
     <label>
-      วันที่ *
+      <span>วันที่ <span class="req">*</span></span>
       <input type="date" formControlName="advanceDate" />
     </label>
     <label>
-      จำนวนเงิน *
+      <span>จำนวนเงิน <span class="req">*</span></span>
       <input type="number" min="0.01" step="0.01" inputmode="decimal" formControlName="amount" />
     </label>
     <label>

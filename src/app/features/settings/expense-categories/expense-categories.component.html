@@ -6,11 +6,11 @@
   <h2>{{ editingId() ? 'แก้ไขหมวด' : 'เพิ่มหมวด' }}</h2>
   <form class="grid" [formGroup]="form" (ngSubmit)="save()">
     <label>
-      รหัส *
+      <span>รหัส <span class="req">*</span></span>
       <input type="text" formControlName="code" placeholder="MAT" />
     </label>
     <label>
-      ชื่อหมวด *
+      <span>ชื่อหมวด <span class="req">*</span></span>
       <input type="text" formControlName="name" placeholder="ค่าวัสดุก่อสร้าง" />
     </label>
     <label>

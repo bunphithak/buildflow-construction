@@ -81,6 +81,11 @@ textarea {
   color: var(--color-card);
 }
 
+.req {
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
 .icon-actions {
   display: flex;
   gap: 0.35rem;

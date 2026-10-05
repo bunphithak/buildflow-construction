@@ -9,4 +9,10 @@ import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 })
 export class ConfirmDialogComponent {
   readonly dialog = inject(ConfirmDialogService);
+
+  onOverlay(event: MouseEvent): void {
+    if (event.target === event.currentTarget) {
+      this.dialog.close(false);
+    }
+  }
 }
